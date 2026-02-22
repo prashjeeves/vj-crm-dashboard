@@ -1,65 +1,307 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useRouter } from "next/navigation";
+
+import { useDashboard } from "@/components/DashboardProvider";
+import { TopBar } from "@/components/TopBar";
+import { UploadZone } from "@/components/UploadZone";
+import { aggregatePipeline, filterOpportunities } from "@/lib/aggregations";
+import { format } from "date-fns";
+import {
+  PoundSterling,
+  Target,
+  TrendingUp,
+  FileBox,
+  TrendingDown,
+  AlertTriangle,
+  Building2,
+  PieChart as PieChartIcon,
+  Info
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LabelList
+} from 'recharts';
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const { isLoaded, opportunities, filters, currentSnapshot, previousSnapshot, report } = useDashboard();
+
+  if (!isLoaded) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#F8FAFC]">
+        <TopBar title="Executive Overview" />
+        <div className="flex-1 flex items-center justify-center w-full">
+          <UploadZone />
+        </div>
+      </div>
+    );
+  }
+
+  // Active aggregated values based on filters (strictly Open Pipeline)
+  const activeOpps = filterOpportunities(opportunities, filters);
+  const metrics = aggregatePipeline(activeOpps, filters);
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(val);
+  };
+
+  const budget2026 = 15000000; // Hardcoded example 15M budget roughly
+  const budgetRatio = (metrics.openPipelineValueGbp / budget2026) * 100;
+
+  // Snapshot WoW Growth
+  let growthRatio = 0;
+  if (previousSnapshot && previousSnapshot.openPipelineValueGbp > 0) {
+    growthRatio = ((currentSnapshot?.openPipelineValueGbp || 0) / previousSnapshot.openPipelineValueGbp) - 1;
+  }
+
+  const PIE_COLORS = ['#3B4A54', '#F37021', '#ECA338', '#4B5563', '#10B981'];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex-1 flex flex-col bg-[#F8FAFC] min-h-screen">
+      <TopBar title="Executive Overview" />
+
+      <div className="p-8 space-y-8 max-w-[1600px] w-full mx-auto">
+
+        {/* KPI Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <KpiCard
+            title="Open Pipeline"
+            helpText="Sum of all opportunities where Status is exactly 'New' or 'Open'. Closed, Won, or Lost deals are strictly excluded from calculation."
+            value={formatCurrency(metrics.openPipelineValueGbp)}
+            icon={PoundSterling}
+            trend={currentSnapshot ? `+${currentSnapshot.createdLast7DaysCount} last 7d` : undefined}
+            positive={true}
+            subtitle={previousSnapshot ? `vs ${formatCurrency(previousSnapshot.openPipelineValueGbp)} on ${format(new Date(previousSnapshot.timestamp), 'MMM d')}` : undefined}
+          />
+          <KpiCard
+            title="Weighted Value"
+            helpText={`Applies the formula: [Value (GBP)] * [Probability]. Currently using mode: ${filters.mode}.`}
+            value={formatCurrency(metrics.weightedPipelineValue)}
+            icon={Target}
+            subtitle={`Mode: ${filters.mode}`}
+          />
+          <KpiCard
+            title="Active Opportunities"
+            helpText="Count of rows where Status is exactly 'New' or 'Open'."
+            value={metrics.openOpportunityCount.toString()}
+            icon={FileBox}
+          />
+          <KpiCard
+            title="Budget 2026 Coverage"
+            helpText="Calculated as (Open Pipeline / £15,000,000 Target) * 100."
+            value={`${budgetRatio.toFixed(1)}%`}
+            icon={TrendingUp}
+            trend={budgetRatio >= 50 ? "On Track" : "Action Required"}
+            positive={budgetRatio >= 50}
+          />
+        </div>
+
+        {/* Chart Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm relative">
+            <h3 className="text-lg font-bold text-slate-800 mb-6">Pipeline by Region</h3>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={metrics.byRegion} layout="vertical" margin={{ left: 40, right: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
+                  <XAxis type="number" tickFormatter={(val) => `£${(val / 1000000).toFixed(1)}M`} stroke="#94A3B8" fontSize={12} />
+                  <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                  <Tooltip
+                    cursor={{ fill: '#F1F5F9' }}
+                    formatter={(val: number, name: string, props: any) => [
+                      `${formatCurrency(val)}`,
+                      "Open Pipeline"
+                    ]}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="#F37021"
+                    radius={[0, 4, 4, 0]}
+                    barSize={24}
+                    className="cursor-pointer hover:brightness-110 transition-all"
+                    onClick={(data) => router.push(`/explorer?region=${encodeURIComponent(data.name)}`)}
+                  >
+                    <LabelList dataKey="count" position="right" formatter={(val: number) => `${val} Opps`} fill="#64748B" fontSize={12} fontWeight="bold" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm">
+            <div className="flex items-center mb-6">
+              <PieChartIcon className="w-5 h-5 mr-2 text-vjtech-accent" />
+              <h3 className="text-lg font-bold text-slate-800">Customer Classes</h3>
+            </div>
+            <div className="h-[200px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={metrics.byClass.length > 0 ? metrics.byClass : [{ name: 'Empty', value: 1 }]}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {metrics.byClass.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 space-y-2">
+              {metrics.byClass.slice(0, 4).map((c, i) => (
+                <div key={c.name} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
+                    <span className="text-slate-600 truncate max-w-[120px]">{c.name}</span>
+                  </div>
+                  <span className="font-semibold text-slate-900">
+                    {metrics.openPipelineValueGbp > 0 ? ((c.value / metrics.openPipelineValueGbp) * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom Row - Data Quality & Top Countries */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm flex flex-col">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2 text-vjtech-accent" /> Pipeline Velocity
+            </h3>
+
+            <div className="space-y-6 flex-1">
+              <div>
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Generated Last 7 Days</p>
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-slate-500">{currentSnapshot?.createdLast7DaysCount || 0} Deals</span>
+                  <span className="text-xl font-bold text-slate-900 text-emerald-600">{formatCurrency(currentSnapshot?.createdLast7DaysValue || 0)}</span>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Generated Last 30 Days</p>
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-slate-500">{currentSnapshot?.createdLast30DaysCount || 0} Deals</span>
+                  <span className="text-xl font-bold text-slate-900 text-emerald-600">{formatCurrency(currentSnapshot?.createdLast30DaysValue || 0)}</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100">
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center"><AlertTriangle className="w-4 h-4 mr-1 text-amber-500" /> Data Audit</p>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs text-slate-500">Account Match Rate</span>
+                  <span className="text-xs font-bold text-slate-700">{report?.joinMatchRate.toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5 mb-3"><div className="bg-vjtech-primary h-1.5 rounded-full" style={{ width: `${report?.joinMatchRate || 0}%` }}></div></div>
+                <div className="flex justify-between items-center text-xs text-slate-500">
+                  <span>Invalid Calculation Rows:</span>
+                  <span className="font-bold text-rose-500">{report ? (report.invalidStageProbRows.length + report.invalidDateRows.length) : 0} Rows omitted</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm">
+            <div className="flex items-center group/tooltip w-max mb-4">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                <Building2 className="w-5 h-5 mr-2 text-vjtech-accent" /> Top Countries by Value
+              </h3>
+              <div className="ml-2 relative flex items-center">
+                <Info className="w-4 h-4 text-slate-300 hover:text-vjtech-accent cursor-help transition-colors" />
+                <div className="absolute left-1/2 -top-2 -translate-y-full -translate-x-1/2 w-56 bg-slate-800 text-white text-xs rounded-lg p-2.5 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-10 shadow-lg pointer-events-none">
+                  Calculated exclusively from Active Open Pipeline value sums grouped by Customer Country logic.
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-separate border-spacing-0">
+                <thead>
+                  <tr>
+                    <th className="text-left py-3 px-4 bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider rounded-l-lg">Country</th>
+                    <th className="text-right py-3 px-4 bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">Opps</th>
+                    <th className="text-right py-3 px-4 bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider rounded-r-lg">Pipeline Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.byCountry.slice(0, 5).map((ctry, idx) => (
+                    <tr key={ctry.name} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-4 border-b border-slate-100 text-sm font-medium text-slate-800">{ctry.name}</td>
+                      <td className="py-3 px-4 border-b border-slate-100 text-sm font-medium text-slate-600 text-right">{ctry.count}</td>
+                      <td className="py-3 px-4 border-b border-slate-100 text-sm font-bold text-slate-900 text-right">{formatCurrency(ctry.value)}</td>
+                    </tr>
+                  ))}
+                  {metrics.byCountry.length === 0 && (
+                    <tr><td colSpan={3} className="py-4 text-center text-slate-500 text-sm">No valid countries found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ title, value, icon: Icon, trend, positive, subtitle, helpText }: { title: string, value: string, icon: any, trend?: string, positive?: boolean, subtitle?: string, helpText?: string }) {
+  return (
+    <div className="bg-white flex flex-col justify-between rounded-2xl p-6 border border-slate-200/60 shadow-sm transition-shadow hover:shadow-md relative overflow-hidden group">
+      <div>
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center group/tooltip">
+            <h3 className="text-sm font-semibold text-slate-500 tracking-wide">{title}</h3>
+            {helpText && (
+              <div className="ml-2 relative flex items-center">
+                <Info className="w-4 h-4 text-slate-300 hover:text-vjtech-accent cursor-help transition-colors" />
+                <div className="absolute left-6 -top-2 -translate-y-full w-56 bg-slate-800 text-white text-xs rounded-lg p-2.5 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-10 shadow-xl pointer-events-none">
+                  {helpText}
+                  <div className="absolute -bottom-1 left-4 w-2 h-2 bg-slate-800 rotate-45"></div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="bg-vjtech-accent/10 p-2.5 rounded-xl text-vjtech-accent group-hover:bg-vjtech-accent group-hover:text-white transition-colors">
+            <Icon className="w-5 h-5" />
+          </div>
+        </div>
+        <div>
+          <p className="text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
+        </div>
+      </div>
+      <div>
+        {trend && (
+          <p className={`text-xs font-semibold mt-4 flex items-center ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {positive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+            {trend}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        )}
+
+        {subtitle && (
+          <p className="text-xs font-medium text-slate-400 mt-4 uppercase tracking-wider">{subtitle}</p>
+        )}
+      </div>
     </div>
   );
 }
