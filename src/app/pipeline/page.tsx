@@ -5,7 +5,7 @@ import { TopBar } from "@/components/TopBar";
 import { UploadZone } from "@/components/UploadZone";
 import { filterOpportunities } from "@/lib/aggregations";
 import { AgeBand } from "@/lib/types";
-import { ChevronRight, Clock, Trophy } from "lucide-react";
+import { Clock, Trophy } from "lucide-react";
 
 const AGE_BANDS: AgeBand[] = ['0-30', '31-60', '61-90', '91-180', '181-270', '271-365', '365+'];
 
@@ -31,7 +31,7 @@ export default function PipelineAnalyticsPage() {
 
     // Build Ageing Matrix
     const RegionRows = new Map<string, Record<AgeBand, number>>();
-    let totalByBand: Record<AgeBand, number> = { '0-30': 0, '31-60': 0, '61-90': 0, '91-180': 0, '181-270': 0, '271-365': 0, '365+': 0 };
+    const totalByBand: Record<AgeBand, number> = { '0-30': 0, '31-60': 0, '61-90': 0, '91-180': 0, '181-270': 0, '271-365': 0, '365+': 0 };
 
     for (const o of activeOpps) {
         const region = o.salesRegion || "Unknown";
@@ -54,7 +54,7 @@ export default function PipelineAnalyticsPage() {
     const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     const ForecastRows = new Map<string, Record<string, number>>();
-    let forecastTotalByCol: Record<string, number> = { 'Past': 0, ...Object.fromEntries(forecastMonths.map(m => [m, 0])), 'Future': 0 };
+    const forecastTotalByCol: Record<string, number> = { 'Past': 0, ...Object.fromEntries(forecastMonths.map(m => [m, 0])), 'Future': 0 };
 
     for (const o of activeOpps) {
         const region = o.salesRegion || "Unknown";
@@ -120,7 +120,7 @@ export default function PipelineAnalyticsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {matrixRegions.map(([region, map], idx) => {
+                                {matrixRegions.map(([region, map]) => {
                                     const regionTotal = AGE_BANDS.reduce((sum, b) => sum + map[b], 0);
                                     return (
                                         <tr key={region} className="border-b border-slate-100 hover:bg-vjtech-accent/5 transition-colors">
@@ -174,7 +174,7 @@ export default function PipelineAnalyticsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {forecastMatrixRegions.map(([region, map], idx) => {
+                                {forecastMatrixRegions.map(([region, map]) => {
                                     const regionTotal = map['Past'] + forecastMonths.reduce((sum, m) => sum + map[m], 0) + map['Future'];
                                     return (
                                         <tr key={region} className="border-b border-slate-100 hover:bg-indigo-50/50 transition-colors">

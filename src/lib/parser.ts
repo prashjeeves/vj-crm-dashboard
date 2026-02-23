@@ -1,5 +1,5 @@
-import { differenceInDays, format, isValid, parse } from 'date-fns';
-import { AgeBand } from './types';
+import { format, isValid } from 'date-fns';
+
 
 /**
  * Extracts numeric percentage inside parentheses from Stage string.

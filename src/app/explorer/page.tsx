@@ -4,14 +4,13 @@ import { useDashboard } from "@/components/DashboardProvider";
 import { TopBar } from "@/components/TopBar";
 import { UploadZone } from "@/components/UploadZone";
 import { filterOpportunities } from "@/lib/aggregations";
-import { ParsedOpportunity } from "@/lib/types";
 import { Search, ArrowUpDown, XCircle } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 type SortField = 'value' | 'age' | 'stageProb' | 'userProb' | 'name';
 
-export default function ExplorerPage() {
+function ExplorerContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { isLoaded, opportunities, filters, setFilter } = useDashboard();
@@ -32,18 +31,7 @@ export default function ExplorerPage() {
         }
     }, [regionParam, filters.region, setFilter]);
 
-    if (!isLoaded) {
-        return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-[#F8FAFC]">
-                <TopBar title="Opportunity Explorer" />
-                <div className="flex-1 flex items-center justify-center w-full">
-                    <UploadZone />
-                </div>
-            </div>
-        );
-    }
-
-    const activeOpps = filterOpportunities(opportunities, filters);
+    const activeOpps = useMemo(() => isLoaded ? filterOpportunities(opportunities, filters) : [], [isLoaded, opportunities, filters]);
 
     // Filter by search term & Sort
     const displayedOpps = useMemo(() => {
@@ -71,6 +59,17 @@ export default function ExplorerPage() {
             return sortDesc ? -result : result;
         });
     }, [activeOpps, searchTerm, sortField, sortDesc]);
+
+    if (!isLoaded) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#F8FAFC]">
+                <TopBar title="Opportunity Explorer" />
+                <div className="flex-1 flex items-center justify-center w-full">
+                    <UploadZone />
+                </div>
+            </div>
+        );
+    }
 
 
     const handleSort = (field: SortField) => {
@@ -152,7 +151,7 @@ export default function ExplorerPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {displayedOpps.map((opp, idx) => (
+                                {displayedOpps.map((opp) => (
                                     <tr key={opp.id} className="hover:bg-vjtech-accent/5 transition-colors border-b border-slate-100 last:border-0">
                                         <td className="py-4 px-6 border-b border-slate-100 align-top">
                                             <div className="flex flex-col">
@@ -218,5 +217,13 @@ export default function ExplorerPage() {
 
             </div>
         </div>
+    );
+}
+
+export default function ExplorerPage() {
+    return (
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500">Loading Explorer...</div>}>
+            <ExplorerContent />
+        </Suspense>
     );
 }

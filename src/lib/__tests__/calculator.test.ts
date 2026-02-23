@@ -1,4 +1,4 @@
-import { normalizeCurrency, calculateWeightedValue, isOpenPipeline, getAgeBand } from '../calculator';
+import { normalizeCurrency, calculateWeightedValue, isOpenPipeline } from '../calculator';
 
 describe('Deterministic Currency Normalisation', () => {
     const mockFxRates = { GBP: 1.0, USD: 0.8, EUR: 0.85 };

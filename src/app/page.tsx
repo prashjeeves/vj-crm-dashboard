@@ -58,12 +58,6 @@ export default function DashboardPage() {
   const budget2026 = 15000000; // Hardcoded example 15M budget roughly
   const budgetRatio = (metrics.openPipelineValueGbp / budget2026) * 100;
 
-  // Snapshot WoW Growth
-  let growthRatio = 0;
-  if (previousSnapshot && previousSnapshot.openPipelineValueGbp > 0) {
-    growthRatio = ((currentSnapshot?.openPipelineValueGbp || 0) / previousSnapshot.openPipelineValueGbp) - 1;
-  }
-
   const PIE_COLORS = ['#3B4A54', '#F37021', '#ECA338', '#4B5563', '#10B981'];
 
   return (
@@ -119,7 +113,7 @@ export default function DashboardPage() {
                   <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={120} />
                   <Tooltip
                     cursor={{ fill: '#F1F5F9' }}
-                    formatter={(val: number, name: string, props: any) => [
+                    formatter={(val: number) => [
                       `${formatCurrency(val)}`,
                       "Open Pipeline"
                     ]}
@@ -244,7 +238,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {metrics.byCountry.slice(0, 5).map((ctry, idx) => (
+                  {metrics.byCountry.slice(0, 5).map((ctry) => (
                     <tr key={ctry.name} className="hover:bg-slate-50 transition-colors">
                       <td className="py-3 px-4 border-b border-slate-100 text-sm font-medium text-slate-800">{ctry.name}</td>
                       <td className="py-3 px-4 border-b border-slate-100 text-sm font-medium text-slate-600 text-right">{ctry.count}</td>
@@ -265,6 +259,7 @@ export default function DashboardPage() {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function KpiCard({ title, value, icon: Icon, trend, positive, subtitle, helpText }: { title: string, value: string, icon: any, trend?: string, positive?: boolean, subtitle?: string, helpText?: string }) {
   return (
     <div className="bg-white flex flex-col justify-between rounded-2xl p-6 border border-slate-200/60 shadow-sm transition-shadow hover:shadow-md relative overflow-hidden group">

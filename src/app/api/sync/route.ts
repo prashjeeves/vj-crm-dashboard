@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -6,7 +6,7 @@ import { processPipelineData } from "@/lib/ingest";
 import { saveSnapshot, getLatestSnapshots } from "@/lib/snapshotManager";
 import { RawOpportunity, RawCustomer, SnapshotConfig } from "@/lib/types";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
     try {
         const rootDir = process.cwd();
         const excelDir = path.join(rootDir, "ExcelFiles");
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
         const oppWorkbook = XLSX.read(oppBuffer, { type: "buffer", cellDates: true });
         const custWorkbook = XLSX.read(custBuffer, { type: "buffer", cellDates: true });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fixSheet = (sheet: any) => {
             let minR = 10000000, minC = 10000000, maxR = 0, maxC = 0;
             let found = false;
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
                     if (cell.c < minC) minC = cell.c;
                     if (cell.c > maxC) maxC = cell.c;
                     found = true;
-                } catch (e) { }
+                } catch { }
             }
             if (found && minR <= maxR && minC <= maxC) {
                 sheet['!ref'] = XLSX.utils.encode_range({ s: { c: minC, r: minR }, e: { c: maxC, r: maxR } });
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
             data: { opportunities, report, currentSnapshot: newSnapshot, previousSnapshot }
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Local sync error:", error);
         return NextResponse.json({ error: error.message || "Failed to process files." }, { status: 500 });

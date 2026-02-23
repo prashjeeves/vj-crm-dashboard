@@ -1,4 +1,4 @@
-import { ParsedOpportunity, SnapshotConfig } from "./types";
+import { ParsedOpportunity } from "./types";
 import { calculateWeightedValue } from "./calculator";
 
 export interface DashboardFilters {

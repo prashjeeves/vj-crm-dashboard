@@ -1,4 +1,4 @@
-import { differenceInDays, isAfter } from "date-fns";
+import { differenceInDays } from "date-fns";
 import {
     getAgeBand,
     isOpenPipeline,
@@ -98,7 +98,7 @@ export function processPipelineData(
         const closeMonth = getCloseMonth(estimatedCloseDate);
 
         // JOIN Logic
-        let accountName = raw["Account Name"] || "";
+        const accountName = raw["Account Name"] || "";
         let lookupName = accountName.trim().toLowerCase();
 
         // Check fallback alias map

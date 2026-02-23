@@ -39,7 +39,7 @@ export async function getDb() {
     try {
         await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN byRegionCount TEXT`);
         await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN byRegionValue TEXT`);
-    } catch (e) {
+    } catch {
         // Columns already exist
     }
 
@@ -83,7 +83,13 @@ export async function saveSnapshot(snapshot: SnapshotConfig): Promise<void> {
 
 export async function getLatestSnapshots(limit: number = 2): Promise<SnapshotConfig[]> {
     const db = await getDb();
-    const rows = await db.all<any[]>(`SELECT * FROM snapshots ORDER BY timestamp DESC LIMIT ?`, [limit]);
+    const rows = await db.all<{
+        timestamp: string; openPipelineValueGbp: number; openOpportunityCount: number;
+        createdLast7DaysCount: number; createdLast7DaysValue: number; wonLast7DaysCount: number; wonLast7DaysValue: number;
+        lostLast7DaysCount: number; lostLast7DaysValue: number; createdLast30DaysCount: number; createdLast30DaysValue: number;
+        wonLast30DaysCount: number; wonLast30DaysValue: number; lostLast30DaysCount: number; lostLast30DaysValue: number;
+        byRegionCount?: string; byRegionValue?: string;
+    }[]>(`SELECT * FROM snapshots ORDER BY timestamp DESC LIMIT ?`, [limit]);
     return rows.map(r => ({
         ...r,
         byRegionCount: r.byRegionCount ? JSON.parse(r.byRegionCount) : {},

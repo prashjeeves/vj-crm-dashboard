@@ -1,7 +1,7 @@
 "use client";
 
 import { useDashboard } from "@/components/DashboardProvider";
-import { Filter, Calendar, Info, X } from "lucide-react";
+import { Filter, Calendar, X } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 

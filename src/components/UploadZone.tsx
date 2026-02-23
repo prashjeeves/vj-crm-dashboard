@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { UploadCloud, CheckCircle2, AlertCircle, FolderSync } from "lucide-react";
 import { useDashboard } from "./DashboardProvider";
 
@@ -61,6 +61,7 @@ export function UploadZone() {
                 previousSnapshot: json.data.previousSnapshot,
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -88,6 +89,7 @@ export function UploadZone() {
                 previousSnapshot: json.data.previousSnapshot,
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message);
         } finally {

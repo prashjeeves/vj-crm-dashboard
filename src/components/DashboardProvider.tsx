@@ -22,7 +22,7 @@ interface DashboardState {
 
 interface DashboardContextType extends DashboardState {
     setDashboardData: (data: Partial<DashboardState>) => void;
-    setFilter: (key: keyof DashboardState['filters'], value: any) => void;
+    setFilter: (key: keyof DashboardState['filters'], value: string | number | null) => void;
     clearFilters: () => void;
     resetData: () => void;
 }
@@ -53,7 +53,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, ...data, isLoaded: true }));
     };
 
-    const setFilter = (key: keyof DashboardState['filters'], value: any) => {
+    const setFilter = (key: keyof DashboardState['filters'], value: string | number | null) => {
         setState(prev => ({
             ...prev,
             filters: { ...prev.filters, [key]: value }
