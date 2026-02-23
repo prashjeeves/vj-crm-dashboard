@@ -69,14 +69,19 @@ export default function PipelineAnalyticsPage() {
         if (!o.estimatedCloseDate) {
             col = 'Past';
         } else {
-            const yr = o.estimatedCloseDate.getFullYear();
-            if (yr < 2026) col = 'Past';
-            else if (yr === 2026) {
-                const mo = (o.estimatedCloseDate.getMonth() + 1).toString().padStart(2, '0');
-                const cm = `2026-${mo}`;
-                if (forecastMonths.includes(cm)) col = cm;
+            const estDate = new Date(o.estimatedCloseDate);
+            if (isNaN(estDate.getTime())) {
+                col = 'Past';
             } else {
-                col = 'Future';
+                const yr = estDate.getFullYear();
+                if (yr < 2026) col = 'Past';
+                else if (yr === 2026) {
+                    const mo = (estDate.getMonth() + 1).toString().padStart(2, '0');
+                    const cm = `2026-${mo}`;
+                    if (forecastMonths.includes(cm)) col = cm;
+                } else {
+                    col = 'Future';
+                }
             }
         }
 
