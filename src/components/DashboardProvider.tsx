@@ -16,6 +16,7 @@ interface DashboardState {
         customerClass: string | null;
         createdAfter: string | null;
         createdBefore: string | null;
+        ageStatus: string | null;
     };
 }
 
@@ -38,7 +39,8 @@ const initialState: DashboardState = {
         region: null,
         customerClass: null,
         createdAfter: null,
-        createdBefore: null
+        createdBefore: null,
+        ageStatus: null
     }
 };
 

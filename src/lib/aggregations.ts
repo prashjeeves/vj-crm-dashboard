@@ -8,6 +8,7 @@ export interface DashboardFilters {
     customerClass: string | null;
     createdAfter: string | null;
     createdBefore: string | null;
+    ageStatus: string | null;
 }
 
 export function filterOpportunities(opps: ParsedOpportunity[], filters: DashboardFilters) {
@@ -38,6 +39,13 @@ export function filterOpportunities(opps: ParsedOpportunity[], filters: Dashboar
 
         if (filters.region && o.salesRegion !== filters.region) return false;
         if (filters.customerClass && o.customerClass !== filters.customerClass) return false;
+
+        if (filters.ageStatus) {
+            if (filters.ageStatus === "fresh" && o.ageDays > 90) return false;
+            if (filters.ageStatus === "ageing" && (o.ageDays <= 90 || o.ageDays > 180)) return false;
+            if (filters.ageStatus === "stale" && o.ageDays <= 180) return false;
+            if (filters.ageStatus === "severe" && o.ageDays <= 365) return false;
+        }
 
         return true;
     });

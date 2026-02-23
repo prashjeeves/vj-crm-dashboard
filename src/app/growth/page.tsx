@@ -7,7 +7,7 @@ import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity } from "l
 import { format } from "date-fns";
 
 export default function GrowthMetricsPage() {
-    const { isLoaded, currentSnapshot, previousSnapshot } = useDashboard();
+    const { isLoaded, currentSnapshot, previousSnapshot, opportunities } = useDashboard();
 
     if (!isLoaded || !currentSnapshot) {
         return (
@@ -31,6 +31,36 @@ export default function GrowthMetricsPage() {
 
     const hasPrevious = !!previousSnapshot;
     const growthWow = getWowPercentage(currentSnapshot.openPipelineValueGbp, previousSnapshot?.openPipelineValueGbp || 0);
+
+    // Calendar Year Aggregation
+    const yearStats = new Map<number, {
+        createdCount: number; createdValue: number;
+        wonCount: number; wonValue: number;
+        lostCount: number; lostValue: number;
+    }>();
+
+    if (opportunities) {
+        for (const o of opportunities) {
+            const yr = new Date(o.createdOn).getFullYear();
+            if (!yearStats.has(yr)) {
+                yearStats.set(yr, { createdCount: 0, createdValue: 0, wonCount: 0, wonValue: 0, lostCount: 0, lostValue: 0 });
+            }
+            const s = yearStats.get(yr)!;
+
+            s.createdCount++;
+            s.createdValue += o.valueGbp;
+
+            if (o.status === 'Won') {
+                s.wonCount++;
+                s.wonValue += o.valueGbp;
+            } else if (o.status === 'Lost') {
+                s.lostCount++;
+                s.lostValue += o.valueGbp;
+            }
+        }
+    }
+
+    const sortedYears = Array.from(yearStats.keys()).sort((a, b) => b - a); // descending
 
     return (
         <div className="flex-1 flex flex-col bg-[#F8FAFC] min-h-screen">
@@ -166,6 +196,49 @@ export default function GrowthMetricsPage() {
                         </div>
                     )}
 
+                    {/* Calendar Year Historical Analysis */}
+                    {sortedYears.length > 0 && (
+                        <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm lg:col-span-2">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center">
+                                <CalendarDays className="w-5 h-5 mr-3 text-vjtech-accent" /> Annual Pipeline Conversions (Sales Director Review)
+                            </h3>
+                            <p className="text-sm text-slate-500 mb-6 italic">
+                                *Note: Conversion ratios may appear skewed as direct-to-order distributor sales often bypass CRM opportunity creation.
+                            </p>
+                            <div className="overflow-x-auto rounded-xl border border-slate-200">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-[#1E293B] text-slate-300 text-xs font-bold uppercase tracking-wider">
+                                        <tr>
+                                            <th className="py-4 px-4 border-r border-slate-700 w-1/5 whitespace-nowrap">Creation Year</th>
+                                            <th className="py-4 px-4 text-center">Created Vol</th>
+                                            <th className="py-4 px-4 text-center">Won Vol</th>
+                                            <th className="py-4 px-4 text-center">Lost Vol</th>
+                                            <th className="py-4 px-4 text-center text-vjtech-accent bg-slate-800">Win Rate %</th>
+                                            <th className="py-4 px-4 text-right">Created Val (GBP)</th>
+                                            <th className="py-4 px-4 text-right min-w-[140px]">Won Val (GBP)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedYears.map(yr => {
+                                            const s = yearStats.get(yr)!;
+                                            const winRatio = s.wonCount + s.lostCount > 0 ? (s.wonCount / (s.wonCount + s.lostCount)) * 100 : 0;
+                                            return (
+                                                <tr key={yr} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                                    <td className="py-4 px-4 font-black text-slate-800 border-r border-slate-100 text-base">{yr}</td>
+                                                    <td className="py-4 px-4 text-center font-medium text-slate-600">{s.createdCount.toLocaleString()}</td>
+                                                    <td className="py-4 px-4 text-center font-bold text-emerald-600">{s.wonCount.toLocaleString()}</td>
+                                                    <td className="py-4 px-4 text-center font-bold text-rose-600">{s.lostCount.toLocaleString()}</td>
+                                                    <td className="py-4 px-4 text-center font-black text-vjtech-accent bg-vjtech-accent/5">{winRatio.toFixed(1)}%</td>
+                                                    <td className="py-4 px-4 text-right text-slate-600 font-medium tracking-tight">{formatCurrency(s.createdValue)}</td>
+                                                    <td className="py-4 px-4 text-right font-bold text-emerald-600 tracking-tight">{formatCurrency(s.wonValue)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
             </div>

@@ -49,6 +49,43 @@ export default function PipelineAnalyticsPage() {
 
     const matrixRegions = Array.from(RegionRows.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
+    // Build 2026 Forecast Matrix
+    const forecastMonths = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12'];
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const ForecastRows = new Map<string, Record<string, number>>();
+    let forecastTotalByCol: Record<string, number> = { 'Past': 0, ...Object.fromEntries(forecastMonths.map(m => [m, 0])), 'Future': 0 };
+
+    for (const o of activeOpps) {
+        const region = o.salesRegion || "Unknown";
+        if (!ForecastRows.has(region)) {
+            ForecastRows.set(region, { 'Past': 0, ...Object.fromEntries(forecastMonths.map(m => [m, 0])), 'Future': 0 });
+        }
+        const row = ForecastRows.get(region)!;
+
+        const val = o.valueGbp;
+        let col = 'Future';
+
+        if (!o.estimatedCloseDate) {
+            col = 'Past';
+        } else {
+            const yr = o.estimatedCloseDate.getFullYear();
+            if (yr < 2026) col = 'Past';
+            else if (yr === 2026) {
+                const mo = (o.estimatedCloseDate.getMonth() + 1).toString().padStart(2, '0');
+                const cm = `2026-${mo}`;
+                if (forecastMonths.includes(cm)) col = cm;
+            } else {
+                col = 'Future';
+            }
+        }
+
+        row[col] += val;
+        forecastTotalByCol[col] += val;
+    }
+
+    const forecastMatrixRegions = Array.from(ForecastRows.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
     // Top Opps
     const topOpps = [...activeOpps].sort((a, b) => b.valueGbp - a.valueGbp).slice(0, 10);
 
@@ -103,6 +140,72 @@ export default function PipelineAnalyticsPage() {
                                     ))}
                                     <td className="py-4 px-4 text-right font-black text-slate-900 border-l border-slate-200">
                                         {formatCurrency(AGE_BANDS.reduce((sum, b) => sum + totalByBand[b], 0))}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                {/* 2026 Forecast Matrix */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm overflow-hidden mt-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                            <Clock className="w-5 h-5 mr-2 text-indigo-500" /> 2026 Regional Revenue Forecast (Based on Est. Close Date)
+                        </h3>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-slate-200">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-[#1E293B] text-slate-300">
+                                <tr>
+                                    <th className="py-4 px-4 font-semibold min-w-[150px]">Region</th>
+                                    <th className="py-4 px-2 font-semibold text-right text-rose-300">Past / Overdue</th>
+                                    {monthLabels.map((lbl) => (
+                                        <th key={lbl} className="py-4 px-2 font-semibold text-right">{lbl}</th>
+                                    ))}
+                                    <th className="py-4 px-2 font-semibold text-right text-emerald-300">2027+</th>
+                                    <th className="py-4 px-4 font-bold text-white text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {forecastMatrixRegions.map(([region, map], idx) => {
+                                    const regionTotal = map['Past'] + forecastMonths.reduce((sum, m) => sum + map[m], 0) + map['Future'];
+                                    return (
+                                        <tr key={region} className="border-b border-slate-100 hover:bg-indigo-50/50 transition-colors">
+                                            <td className="py-3 px-4 font-medium text-slate-800 border-r border-slate-100">{region}</td>
+                                            <td className={`py-3 px-2 text-right border-r border-slate-100/50 ${map['Past'] > 0 ? 'text-rose-600 font-bold bg-rose-50/30' : 'text-slate-300'}`}>
+                                                {map['Past'] > 0 ? formatCurrency(map['Past']) : '-'}
+                                            </td>
+                                            {forecastMonths.map(m => (
+                                                <td key={m} className={`py-3 px-2 text-right ${map[m] > 0 ? 'text-slate-700 font-medium' : 'text-slate-300'}`}>
+                                                    {map[m] > 0 ? formatCurrency(map[m]) : '-'}
+                                                </td>
+                                            ))}
+                                            <td className={`py-3 px-2 text-right border-l border-slate-100/50 ${map['Future'] > 0 ? 'text-emerald-600 font-bold bg-emerald-50/30' : 'text-slate-300'}`}>
+                                                {map['Future'] > 0 ? formatCurrency(map['Future']) : '-'}
+                                            </td>
+                                            <td className="py-3 px-4 text-right font-bold text-slate-900 border-l border-slate-100 bg-slate-50/50">{formatCurrency(regionTotal)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                                <tr>
+                                    <td className="py-4 px-4 font-bold text-slate-900 border-r border-slate-200">Grand Total</td>
+                                    <td className="py-4 px-2 text-right font-bold text-rose-600 border-r border-slate-200">
+                                        {forecastTotalByCol['Past'] > 0 ? formatCurrency(forecastTotalByCol['Past']) : '-'}
+                                    </td>
+                                    {forecastMonths.map(m => (
+                                        <td key={m} className="py-4 px-2 text-right font-semibold text-vjtech-accent">
+                                            {forecastTotalByCol[m] > 0 ? formatCurrency(forecastTotalByCol[m]) : '-'}
+                                        </td>
+                                    ))}
+                                    <td className="py-4 px-2 text-right font-bold text-emerald-600 border-l border-slate-200">
+                                        {forecastTotalByCol['Future'] > 0 ? formatCurrency(forecastTotalByCol['Future']) : '-'}
+                                    </td>
+                                    <td className="py-4 px-4 text-right font-black text-slate-900 border-l border-slate-200">
+                                        {formatCurrency(forecastTotalByCol['Past'] + forecastMonths.reduce((sum, m) => sum + forecastTotalByCol[m], 0) + forecastTotalByCol['Future'])}
                                     </td>
                                 </tr>
                             </tfoot>
