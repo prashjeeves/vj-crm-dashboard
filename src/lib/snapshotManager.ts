@@ -8,8 +8,14 @@ let dbInstance: Database<sqlite3.Database, sqlite3.Statement> | null = null;
 export async function getDb() {
     if (dbInstance) return dbInstance;
 
+    // Vercel serverless functions have a read-only filesystem except for /tmp
+    const isVercel = process.env.VERCEL === "1";
+    const dbPath = isVercel
+        ? path.join('/tmp', 'snapshots.sqlite')
+        : path.join(process.cwd(), 'snapshots.sqlite');
+
     dbInstance = await open({
-        filename: path.join(process.cwd(), 'snapshots.sqlite'),
+        filename: dbPath,
         driver: sqlite3.Database
     });
 
