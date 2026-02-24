@@ -280,48 +280,23 @@ export default function GrowthMetricsPage() {
                                                         <td className="py-4 px-4 text-right text-slate-600 font-medium tracking-tight">{formatCurrency(s.createdValue)}</td>
                                                         <td className="py-4 px-4 text-right font-bold text-emerald-600 tracking-tight">{formatCurrency(s.wonValue)}</td>
                                                     </tr>
-                                                    {isExpanded && (
-                                                        <tr className="bg-slate-50/50 border-b border-slate-200">
-                                                            <td colSpan={7} className="p-0">
-                                                                <div className="py-5 px-6 border-l-[3px] border-vjtech-accent/60 mx-4 my-2 bg-white rounded-r-xl shadow-sm">
-                                                                    <div className="flex items-center justify-between mb-4">
-                                                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">{yr} Country Volume Ranking</div>
-                                                                    </div>
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 max-h-[340px] overflow-y-auto pr-2">
-                                                                        {sortedCountries.map(([country, stats], idx) => {
-                                                                            const cWinRatio = stats.wonCount + stats.lostCount > 0 ? (stats.wonCount / (stats.wonCount + stats.lostCount)) * 100 : 0;
-                                                                            return (
-                                                                                <div key={country} className="flex flex-col p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                                                                                    <div className="flex justify-between items-center mb-1.5 border-b border-slate-200/60 pb-1.5">
-                                                                                        <span className="font-bold text-slate-800 text-sm flex items-center">
-                                                                                            <span className="text-slate-400 font-medium text-xs mr-2">{idx + 1}.</span>
-                                                                                            {country}
-                                                                                        </span>
-                                                                                        <span className="text-xs font-bold text-vjtech-accent bg-vjtech-accent/10 px-2 py-0.5 rounded-md">{stats.createdCount} opps</span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between items-center text-xs mt-1">
-                                                                                        <span className="text-slate-500">Pipeline Generated:</span>
-                                                                                        <span className="text-slate-700 font-bold">{formatCurrency(stats.createdValue)}</span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between items-center text-xs mt-1.5 pt-1.5 border-t border-slate-100">
-                                                                                        <span className="text-emerald-600 font-bold flex items-center" title="Won Count">
-                                                                                            Won: {stats.wonCount}
-                                                                                        </span>
-                                                                                        <span className={`${cWinRatio >= 50 ? 'text-emerald-600' : (cWinRatio > 0 ? 'text-amber-500' : 'text-slate-400')} font-bold text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200`}>
-                                                                                            {cWinRatio.toFixed(0)}% Win
-                                                                                        </span>
-                                                                                        <span className="text-rose-600 font-bold flex items-center" title="Lost Count">
-                                                                                            Lost: {stats.lostCount}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )}
+                                                    {isExpanded && sortedCountries.map(([country, stats], idx) => {
+                                                        const cWinRatio = stats.wonCount + stats.lostCount > 0 ? (stats.wonCount / (stats.wonCount + stats.lostCount)) * 100 : 0;
+                                                        return (
+                                                            <tr key={`${yr}-${country}`} className="bg-slate-50/50 border-b border-slate-100 hover:bg-slate-100/50 transition-colors">
+                                                                <td className="py-2.5 px-4 pl-12 font-semibold text-slate-700 border-r border-slate-100 text-sm flex items-center">
+                                                                    <span className="text-slate-400 font-normal text-xs w-5 inline-block text-right mr-3">{idx + 1}.</span>
+                                                                    {country}
+                                                                </td>
+                                                                <td className="py-2.5 px-4 text-center font-medium text-slate-500 text-sm">{stats.createdCount.toLocaleString()}</td>
+                                                                <td className="py-2.5 px-4 text-center font-semibold text-emerald-600/80 text-sm">{stats.wonCount.toLocaleString()}</td>
+                                                                <td className="py-2.5 px-4 text-center font-semibold text-rose-600/80 text-sm">{stats.lostCount.toLocaleString()}</td>
+                                                                <td className="py-2.5 px-4 text-center font-bold text-vjtech-accent/80 bg-vjtech-accent/5 text-sm">{cWinRatio.toFixed(1)}%</td>
+                                                                <td className="py-2.5 px-4 text-right text-slate-500 font-medium tracking-tight text-sm">{formatCurrency(stats.createdValue)}</td>
+                                                                <td className="py-2.5 px-4 text-right font-semibold text-emerald-600/80 tracking-tight text-sm">{formatCurrency(stats.wonValue)}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </Fragment>
                                             );
                                         })}
