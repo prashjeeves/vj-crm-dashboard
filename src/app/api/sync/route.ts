@@ -21,10 +21,23 @@ export async function POST() {
             return NextResponse.json({ error: "The local 'ExcelFiles' folder was not found. Please create it in the root directory and place your Excel files inside it." }, { status: 404 });
         }
 
-        // Find newest files from directory
-        const files = await fs.readdir(excelDir);
-        const oppFileName = files.find(f => f.toLowerCase().startsWith("opportunities") && f.endsWith(".xlsx"));
-        const custFileName = files.find(f => f.toLowerCase().startsWith("customers") && f.endsWith(".xlsx"));
+        // Find newest files from directory by sorting by modification time
+        const rawFiles = await fs.readdir(excelDir);
+
+        const filesWithStats = await Promise.all(
+            rawFiles.map(async (filename) => {
+                const filePath = path.join(excelDir, filename);
+                const stat = await fs.stat(filePath);
+                return { filename, mtimeMs: stat.mtimeMs };
+            })
+        );
+
+        // Sort newest first
+        filesWithStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
+        const sortedFiles = filesWithStats.map(f => f.filename);
+
+        const oppFileName = sortedFiles.find(f => f.toLowerCase().startsWith("opportunities") && f.endsWith(".xlsx"));
+        const custFileName = sortedFiles.find(f => f.toLowerCase().startsWith("customers") && f.endsWith(".xlsx"));
 
         if (!oppFileName || !custFileName) {
             return NextResponse.json({ error: "Could not find Opportunities or Customers .xlsx files in the local ExcelFiles folder." }, { status: 404 });
