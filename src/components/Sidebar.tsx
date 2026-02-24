@@ -7,14 +7,12 @@ import { useDashboard } from "@/components/DashboardProvider";
 import {
     LayoutDashboard,
     BarChart3,
-    RefreshCw,
     PieChart,
     Layers
 } from "lucide-react";
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { clearFilters } = useDashboard();
 
     const links = [
         { name: "Executive Overview", href: "/", icon: LayoutDashboard },
@@ -60,17 +58,6 @@ export function Sidebar() {
                     );
                 })}
             </nav>
-
-            <div className="p-6 mt-auto">
-                <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50">
-                    <button
-                        onClick={clearFilters}
-                        className="w-full flex items-center space-x-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/50 p-2 rounded-xl cursor-pointer transition-all duration-200">
-                        <RefreshCw className="w-5 h-5" />
-                        <span>Reset Filters</span>
-                    </button>
-                </div>
-            </div>
         </aside>
     );
 }

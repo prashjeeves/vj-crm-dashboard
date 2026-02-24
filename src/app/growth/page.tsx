@@ -3,13 +3,15 @@
 import { useDashboard } from "@/components/DashboardProvider";
 import { TopBar } from "@/components/TopBar";
 import { UploadZone } from "@/components/UploadZone";
-import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity, ChevronRight, ChevronDown, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import React, { useState, Fragment } from "react";
 
 export default function GrowthMetricsPage() {
     const router = useRouter();
     const { isLoaded, currentSnapshot, previousSnapshot, opportunities } = useDashboard();
+    const [expandedYear, setExpandedYear] = useState<number | null>(null);
 
     if (!isLoaded || !currentSnapshot) {
         return (
@@ -39,13 +41,17 @@ export default function GrowthMetricsPage() {
         createdCount: number; createdValue: number;
         wonCount: number; wonValue: number;
         lostCount: number; lostValue: number;
+        countries: Map<string, { createdCount: number; createdValue: number; wonCount: number; wonValue: number; lostCount: number; lostValue: number }>;
     }>();
 
     if (opportunities) {
         for (const o of opportunities) {
             const yr = new Date(o.createdOn).getFullYear();
             if (!yearStats.has(yr)) {
-                yearStats.set(yr, { createdCount: 0, createdValue: 0, wonCount: 0, wonValue: 0, lostCount: 0, lostValue: 0 });
+                yearStats.set(yr, {
+                    createdCount: 0, createdValue: 0, wonCount: 0, wonValue: 0, lostCount: 0, lostValue: 0,
+                    countries: new Map()
+                });
             }
             const s = yearStats.get(yr)!;
 
@@ -58,6 +64,23 @@ export default function GrowthMetricsPage() {
             } else if (o.status === 'Lost') {
                 s.lostCount++;
                 s.lostValue += o.valueGbp;
+            }
+
+            // Country stats
+            const country = o.country || 'Unknown';
+            if (!s.countries.has(country)) {
+                s.countries.set(country, { createdCount: 0, createdValue: 0, wonCount: 0, wonValue: 0, lostCount: 0, lostValue: 0 });
+            }
+            const cs = s.countries.get(country)!;
+            cs.createdCount++;
+            cs.createdValue += o.valueGbp;
+
+            if (o.status === 'Won') {
+                cs.wonCount++;
+                cs.wonValue += o.valueGbp;
+            } else if (o.status === 'Lost') {
+                cs.lostCount++;
+                cs.lostValue += o.valueGbp;
             }
         }
     }
@@ -224,21 +247,82 @@ export default function GrowthMetricsPage() {
                                         {sortedYears.map(yr => {
                                             const s = yearStats.get(yr)!;
                                             const winRatio = s.wonCount + s.lostCount > 0 ? (s.wonCount / (s.wonCount + s.lostCount)) * 100 : 0;
+                                            const isExpanded = expandedYear === yr;
+                                            const sortedCountries = Array.from(s.countries.entries()).sort((a, b) => b[1].createdCount - a[1].createdCount);
+
                                             return (
-                                                <tr
-                                                    key={yr}
-                                                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer hover:ring-2 hover:ring-vjtech-accent/50 hover:ring-inset"
-                                                    onClick={() => router.push(`/explorer?createdAfter=${yr}-01-01T00:00:00.000Z&createdBefore=${yr}-12-31T23:59:59.999Z`)}
-                                                    title={`View all opportunities created in ${yr}`}
-                                                >
-                                                    <td className="py-4 px-4 font-black text-slate-800 border-r border-slate-100 text-base">{yr}</td>
-                                                    <td className="py-4 px-4 text-center font-medium text-slate-600">{s.createdCount.toLocaleString()}</td>
-                                                    <td className="py-4 px-4 text-center font-bold text-emerald-600">{s.wonCount.toLocaleString()}</td>
-                                                    <td className="py-4 px-4 text-center font-bold text-rose-600">{s.lostCount.toLocaleString()}</td>
-                                                    <td className="py-4 px-4 text-center font-black text-vjtech-accent bg-vjtech-accent/5">{winRatio.toFixed(1)}%</td>
-                                                    <td className="py-4 px-4 text-right text-slate-600 font-medium tracking-tight">{formatCurrency(s.createdValue)}</td>
-                                                    <td className="py-4 px-4 text-right font-bold text-emerald-600 tracking-tight">{formatCurrency(s.wonValue)}</td>
-                                                </tr>
+                                                <Fragment key={yr}>
+                                                    <tr
+                                                        className={`border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${isExpanded ? 'bg-indigo-50/30' : ''}`}
+                                                        onClick={() => setExpandedYear(expandedYear === yr ? null : yr)}
+                                                        title={`Click to view country breakdown for ${yr}`}
+                                                    >
+                                                        <td className="py-4 px-4 font-black text-slate-800 border-r border-slate-100 text-base flex justify-between items-center group">
+                                                            <div className="flex items-center">
+                                                                {isExpanded ? <ChevronDown className="w-4 h-4 mr-2 text-vjtech-accent" /> : <ChevronRight className="w-4 h-4 mr-2 text-slate-400" />}
+                                                                {yr}
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    router.push(`/explorer?createdAfter=${yr}-01-01T00:00:00.000Z&createdBefore=${yr}-12-31T23:59:59.999Z`);
+                                                                }}
+                                                                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-vjtech-accent/10 rounded-md text-vjtech-accent transition-all"
+                                                                title={`Explore all ${yr} deals`}
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            </button>
+                                                        </td>
+                                                        <td className="py-4 px-4 text-center font-medium text-slate-600">{s.createdCount.toLocaleString()}</td>
+                                                        <td className="py-4 px-4 text-center font-bold text-emerald-600">{s.wonCount.toLocaleString()}</td>
+                                                        <td className="py-4 px-4 text-center font-bold text-rose-600">{s.lostCount.toLocaleString()}</td>
+                                                        <td className="py-4 px-4 text-center font-black text-vjtech-accent bg-vjtech-accent/5">{winRatio.toFixed(1)}%</td>
+                                                        <td className="py-4 px-4 text-right text-slate-600 font-medium tracking-tight">{formatCurrency(s.createdValue)}</td>
+                                                        <td className="py-4 px-4 text-right font-bold text-emerald-600 tracking-tight">{formatCurrency(s.wonValue)}</td>
+                                                    </tr>
+                                                    {isExpanded && (
+                                                        <tr className="bg-slate-50/50 border-b border-slate-200">
+                                                            <td colSpan={7} className="p-0">
+                                                                <div className="py-5 px-6 border-l-[3px] border-vjtech-accent/60 mx-4 my-2 bg-white rounded-r-xl shadow-sm">
+                                                                    <div className="flex items-center justify-between mb-4">
+                                                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">{yr} Country Volume Ranking</div>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 max-h-[340px] overflow-y-auto pr-2">
+                                                                        {sortedCountries.map(([country, stats], idx) => {
+                                                                            const cWinRatio = stats.wonCount + stats.lostCount > 0 ? (stats.wonCount / (stats.wonCount + stats.lostCount)) * 100 : 0;
+                                                                            return (
+                                                                                <div key={country} className="flex flex-col p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                                                                    <div className="flex justify-between items-center mb-1.5 border-b border-slate-200/60 pb-1.5">
+                                                                                        <span className="font-bold text-slate-800 text-sm flex items-center">
+                                                                                            <span className="text-slate-400 font-medium text-xs mr-2">{idx + 1}.</span>
+                                                                                            {country}
+                                                                                        </span>
+                                                                                        <span className="text-xs font-bold text-vjtech-accent bg-vjtech-accent/10 px-2 py-0.5 rounded-md">{stats.createdCount} opps</span>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center text-xs mt-1">
+                                                                                        <span className="text-slate-500">Pipeline Generated:</span>
+                                                                                        <span className="text-slate-700 font-bold">{formatCurrency(stats.createdValue)}</span>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center text-xs mt-1.5 pt-1.5 border-t border-slate-100">
+                                                                                        <span className="text-emerald-600 font-bold flex items-center" title="Won Count">
+                                                                                            Won: {stats.wonCount}
+                                                                                        </span>
+                                                                                        <span className={`${cWinRatio >= 50 ? 'text-emerald-600' : (cWinRatio > 0 ? 'text-amber-500' : 'text-slate-400')} font-bold text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200`}>
+                                                                                            {cWinRatio.toFixed(0)}% Win
+                                                                                        </span>
+                                                                                        <span className="text-rose-600 font-bold flex items-center" title="Lost Count">
+                                                                                            Lost: {stats.lostCount}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </Fragment>
                                             );
                                         })}
                                     </tbody>

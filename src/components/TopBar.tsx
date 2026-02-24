@@ -4,15 +4,31 @@ import { useDashboard } from "@/components/DashboardProvider";
 import { Filter, Calendar, X } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 interface TopBarProps {
     title: string;
 }
 
 export function TopBar({ title }: TopBarProps) {
+    const router = useRouter();
+    const pathname = usePathname();
     const { isLoaded, currentSnapshot, filters, setFilter, clearFilters, opportunities } = useDashboard();
     const today = format(new Date(), "MMM dd, yyyy");
     const [showFilters, setShowFilters] = useState(false);
+
+    const handleClearAll = () => {
+        clearFilters();
+        if (pathname === '/explorer') {
+            router.push('/explorer');
+        } else if (pathname === '/pipeline') {
+            router.push('/pipeline');
+        } else if (pathname === '/growth') {
+            router.push('/growth');
+        } else {
+            router.push('/');
+        }
+    };
 
     const mostRecentDate = useMemo(() => {
         if (!opportunities || opportunities.length === 0) return null;
@@ -63,12 +79,6 @@ export function TopBar({ title }: TopBarProps) {
 
                 {isLoaded && (
                     <div className="flex items-center space-x-4 relative">
-                        <button
-                            onClick={clearFilters}
-                            className="text-xs text-slate-400 font-semibold hover:text-slate-700 transition-colors uppercase tracking-wider"
-                        >
-                            Clear Filters
-                        </button>
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className={`flex items-center space-x-2 border font-medium px-4 py-2 rounded-xl text-sm transition-all shadow-sm ${showFilters ? 'bg-vjtech-accent/10 border-vjtech-accent/50 text-vjtech-accent' : 'bg-white border-slate-200 hover:border-vjtech-accent/50 hover:bg-slate-50 text-slate-700'}`}>
@@ -212,8 +222,11 @@ export function TopBar({ title }: TopBarProps) {
                                 Age: {filters.ageStatus.toUpperCase()}
                             </span>
                         )}
-                        <button onClick={clearFilters} className="text-[10px] ml-2 font-bold text-slate-400 hover:text-slate-600 uppercase tracking-wider underline underline-offset-2">
-                            Clear All
+                        <button
+                            onClick={handleClearAll}
+                            className="ml-auto flex items-center bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1.5 px-3 rounded-lg text-xs transition-colors"
+                        >
+                            <X className="w-3.5 h-3.5 mr-1" /> Clear All Filters
                         </button>
                     </div>
                 </div>

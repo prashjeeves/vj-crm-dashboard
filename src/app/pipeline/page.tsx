@@ -33,12 +33,15 @@ export default function PipelineAnalyticsPage() {
 
     // Build Ageing Matrix
     const RegionRows = new Map<string, Record<AgeBand, number>>();
+    const RegionCounts = new Map<string, number>();
     const totalByBand: Record<AgeBand, number> = { '0-30': 0, '31-60': 0, '61-90': 0, '91-180': 0, '181-270': 0, '271-365': 0, '365+': 0 };
+    let grandTotalCount = 0;
 
     for (const o of activeOpps) {
         const region = o.salesRegion || "Unknown";
         if (!RegionRows.has(region)) {
             RegionRows.set(region, { '0-30': 0, '31-60': 0, '61-90': 0, '91-180': 0, '181-270': 0, '271-365': 0, '365+': 0 });
+            RegionCounts.set(region, 0);
         }
         const row = RegionRows.get(region)!;
 
@@ -46,6 +49,8 @@ export default function PipelineAnalyticsPage() {
         if (row[o.ageBand] !== undefined) {
             row[o.ageBand] += o.valueGbp;
             totalByBand[o.ageBand] += o.valueGbp;
+            RegionCounts.set(region, RegionCounts.get(region)! + 1);
+            grandTotalCount++;
         }
     }
 
@@ -217,14 +222,17 @@ export default function PipelineAnalyticsPage() {
                                 <tr>
                                     <th className="py-4 px-4 font-semibold w-1/5">Region</th>
                                     {AGE_BANDS.map(band => (
-                                        <th key={band} className="py-4 px-2 font-semibold text-right">{band} Days</th>
+                                        <th key={band} className="py-4 px-2 font-semibold text-right whitespace-nowrap">{band} Days</th>
                                     ))}
+                                    <th className="py-4 px-4 font-bold text-white text-right">Avg Deal Value</th>
                                     <th className="py-4 px-4 font-bold text-white text-right">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {matrixRegions.map(([region, map]) => {
                                     const regionTotal = AGE_BANDS.reduce((sum, b) => sum + map[b], 0);
+                                    const regionCount = RegionCounts.get(region) || 0;
+                                    const avgVal = regionCount > 0 ? regionTotal / regionCount : 0;
                                     return (
                                         <tr key={region} className="border-b border-slate-100 hover:bg-vjtech-accent/5 transition-colors">
                                             <td className="py-3 px-4 font-medium text-slate-800 border-r border-slate-100">{region}</td>
@@ -233,6 +241,9 @@ export default function PipelineAnalyticsPage() {
                                                     {map[band] > 0 ? formatCurrency(map[band]) : '-'}
                                                 </td>
                                             ))}
+                                            <td className="py-3 px-4 text-right font-medium text-slate-500 border-l border-slate-100">
+                                                {avgVal > 0 ? formatCurrency(avgVal) : '-'}
+                                            </td>
                                             <td className="py-3 px-4 text-right font-bold text-slate-900 border-l border-slate-100">{formatCurrency(regionTotal)}</td>
                                         </tr>
                                     );
@@ -246,6 +257,9 @@ export default function PipelineAnalyticsPage() {
                                             {totalByBand[band] > 0 ? formatCurrency(totalByBand[band]) : '-'}
                                         </td>
                                     ))}
+                                    <td className="py-4 px-4 text-right font-bold text-slate-600 border-l border-slate-200">
+                                        {grandTotalCount > 0 ? formatCurrency(AGE_BANDS.reduce((sum, b) => sum + totalByBand[b], 0) / grandTotalCount) : '-'}
+                                    </td>
                                     <td className="py-4 px-4 text-right font-black text-slate-900 border-l border-slate-200">
                                         {formatCurrency(AGE_BANDS.reduce((sum, b) => sum + totalByBand[b], 0))}
                                     </td>
