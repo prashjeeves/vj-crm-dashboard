@@ -6,10 +6,12 @@ import { UploadZone } from "@/components/UploadZone";
 import { filterOpportunities } from "@/lib/aggregations";
 import { AgeBand } from "@/lib/types";
 import { Clock, Trophy } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const AGE_BANDS: AgeBand[] = ['0-30', '31-60', '61-90', '91-180', '181-270', '271-365', '365+'];
 
 export default function PipelineAnalyticsPage() {
+    const router = useRouter();
     const { isLoaded, opportunities, filters } = useDashboard();
 
     if (!isLoaded) {
@@ -193,11 +195,23 @@ export default function PipelineAnalyticsPage() {
                                     return (
                                         <tr key={region} className="border-b border-slate-100 hover:bg-indigo-50/50 transition-colors">
                                             <td className="py-3 px-4 font-medium text-slate-800 border-r border-slate-100">{region}</td>
-                                            <td className={`py-3 px-2 text-right border-r border-slate-100/50 ${map['Past'] > 0 ? 'text-rose-600 font-bold bg-rose-50/30' : 'text-slate-300'}`}>
+                                            <td
+                                                className={`py-3 px-2 text-right border-r border-slate-100/50 ${map['Past'] > 0 ? 'text-rose-600 font-bold bg-rose-50/30' : 'text-slate-300'}`}
+                                            >
                                                 {map['Past'] > 0 ? formatCurrency(map['Past']) : '-'}
                                             </td>
                                             {forecastMonths.map(m => (
-                                                <td key={m} className={`py-3 px-2 text-right border-x border-white/50 ${map[m] > 0 ? 'text-slate-800 font-semibold drop-shadow-sm' : 'text-slate-400/50'}`} style={{ backgroundColor: getHeatmapBg(map[m]) }}>
+                                                <td
+                                                    key={m}
+                                                    className={`py-3 px-2 text-right border-x border-white/50 transition-all ${map[m] > 0 ? 'text-slate-800 font-semibold drop-shadow-sm cursor-pointer hover:ring-2 hover:ring-vjtech-accent hover:ring-inset' : 'text-slate-400/50'}`}
+                                                    style={{ backgroundColor: getHeatmapBg(map[m]) }}
+                                                    onClick={() => {
+                                                        if (map[m] > 0) {
+                                                            router.push(`/explorer?region=${encodeURIComponent(region)}&closeMonth=${m}`);
+                                                        }
+                                                    }}
+                                                    title={map[m] > 0 ? `Click to view ${region} deals closing in ${m}` : undefined}
+                                                >
                                                     {map[m] > 0 ? formatCurrency(map[m]) : '-'}
                                                 </td>
                                             ))}

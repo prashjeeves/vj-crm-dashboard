@@ -9,6 +9,7 @@ export interface DashboardFilters {
     createdAfter: string | null;
     createdBefore: string | null;
     ageStatus: string | null;
+    closeMonth: string | null;
 }
 
 export function filterOpportunities(opps: ParsedOpportunity[], filters: DashboardFilters) {
@@ -46,6 +47,8 @@ export function filterOpportunities(opps: ParsedOpportunity[], filters: Dashboar
             if (filters.ageStatus === "stale" && o.ageDays <= 180) return false;
             if (filters.ageStatus === "severe" && o.ageDays <= 365) return false;
         }
+
+        if (filters.closeMonth && o.closeMonth !== filters.closeMonth) return false;
 
         return true;
     });

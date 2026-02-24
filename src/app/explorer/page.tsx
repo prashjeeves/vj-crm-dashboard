@@ -24,12 +24,16 @@ function ExplorerContent() {
     };
 
     const regionParam = searchParams.get('region');
+    const closeMonthParam = searchParams.get('closeMonth');
 
     useEffect(() => {
         if (regionParam && filters.region !== regionParam) {
             setFilter('region', regionParam);
         }
-    }, [regionParam, filters.region, setFilter]);
+        if (closeMonthParam && filters.closeMonth !== closeMonthParam) {
+            setFilter('closeMonth', closeMonthParam);
+        }
+    }, [regionParam, closeMonthParam, filters.region, filters.closeMonth, setFilter]);
 
     const activeOpps = useMemo(() => isLoaded ? filterOpportunities(opportunities, filters) : [], [isLoaded, opportunities, filters]);
 
@@ -104,21 +108,43 @@ function ExplorerContent() {
                         />
                     </div>
 
-                    {filters.region && (
-                        <div className="flex items-center space-x-2 bg-vjtech-accent/10 text-vjtech-accent px-4 py-2 rounded-xl text-sm font-semibold">
-                            <span>Filtering exactly Region: {filters.region}</span>
-                            <button
-                                onClick={() => {
-                                    setFilter('region', null);
-                                    if (regionParam) router.push('/explorer');
-                                }}
-                                className="text-vjtech-accent/60 hover:text-vjtech-accent p-1"
-                                title="Clear Region Filter"
-                            >
-                                <XCircle className="w-4 h-4" />
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex gap-2 flex-wrap">
+                        {filters.region && (
+                            <div className="flex items-center space-x-2 bg-vjtech-accent/10 text-vjtech-accent px-4 py-2 rounded-xl text-sm font-semibold">
+                                <span>Filtering exactly Region: {filters.region}</span>
+                                <button
+                                    onClick={() => {
+                                        setFilter('region', null);
+                                        const newParams = new URLSearchParams(searchParams.toString());
+                                        newParams.delete('region');
+                                        router.push(`/explorer?${newParams.toString()}`);
+                                    }}
+                                    className="text-vjtech-accent/60 hover:text-vjtech-accent p-1"
+                                    title="Clear Region Filter"
+                                >
+                                    <XCircle className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        {filters.closeMonth && (
+                            <div className="flex items-center space-x-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-semibold">
+                                <span>Closing in: {filters.closeMonth}</span>
+                                <button
+                                    onClick={() => {
+                                        setFilter('closeMonth', null);
+                                        const newParams = new URLSearchParams(searchParams.toString());
+                                        newParams.delete('closeMonth');
+                                        router.push(`/explorer?${newParams.toString()}`);
+                                    }}
+                                    className="text-indigo-400 hover:text-indigo-600 p-1"
+                                    title="Clear Month Filter"
+                                >
+                                    <XCircle className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="text-sm font-medium text-slate-500">
                         Viewing <span className="font-bold text-slate-900">{displayedOpps.length}</span> Opportunities

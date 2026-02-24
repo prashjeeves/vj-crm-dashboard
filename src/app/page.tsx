@@ -75,7 +75,7 @@ export default function DashboardPage() {
     ...r,
     labelStr: `${r.count} Deals (${metrics.weightedPipelineValue > 0 ? ((r.value / metrics.weightedPipelineValue) * 100).toFixed(1) : 0}%)`
   }));
-  const countryData = metrics.byCountry.slice(0, 15).map(c => ({
+  const countryData = metrics.byCountry.map(c => ({
     ...c,
     labelStr: `${c.count} Deals (${metrics.weightedPipelineValue > 0 ? ((c.value / metrics.weightedPipelineValue) * 100).toFixed(1) : 0}%)`
   }));
@@ -133,32 +133,34 @@ export default function DashboardPage() {
                 <button onClick={() => setGeoView('country')} className={`px-4 py-1.5 rounded-md transition-all ${geoView === 'country' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>Countries</button>
               </div>
             </div>
-            <div className="h-[300px] w-full flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={activeGeoData} layout="vertical" margin={{ left: 40, right: 120 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
-                  <XAxis type="number" tickFormatter={(val) => `£${(val / 1000000).toFixed(1)}M`} stroke="#94A3B8" fontSize={12} />
-                  <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={120} />
-                  <Tooltip
-                    cursor={{ fill: '#F1F5F9' }}
-                    formatter={(val: number) => [
-                      `${formatCurrency(val)}`,
-                      "Weighted Pipeline"
-                    ]}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill="#F37021"
-                    radius={[0, 4, 4, 0]}
-                    barSize={geoView === 'country' ? 16 : 24}
-                    className="cursor-pointer hover:brightness-110 transition-all"
-                    onClick={(data) => router.push(`/explorer?region=${encodeURIComponent(data.name)}`)}
-                  >
-                    <LabelList dataKey="labelStr" position="right" fill="#64748B" fontSize={11} fontWeight="bold" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="w-full flex-1 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: '350px' }}>
+              <div style={{ height: geoView === 'country' ? `${Math.max(300, activeGeoData.length * 40)}px` : '300px', minHeight: '300px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={activeGeoData} layout="vertical" margin={{ left: 40, right: 140 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
+                    <XAxis type="number" tickFormatter={(val) => `£${(val / 1000000).toFixed(1)}M`} stroke="#94A3B8" fontSize={12} />
+                    <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                    <Tooltip
+                      cursor={{ fill: '#F1F5F9' }}
+                      formatter={(val: number) => [
+                        `${formatCurrency(val)}`,
+                        "Weighted Pipeline"
+                      ]}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Bar
+                      dataKey="value"
+                      fill="#F37021"
+                      radius={[0, 4, 4, 0]}
+                      barSize={geoView === 'country' ? 16 : 24}
+                      className="cursor-pointer hover:brightness-110 transition-all"
+                      onClick={(data) => router.push(`/explorer?region=${encodeURIComponent(data.name)}`)}
+                    >
+                      <LabelList dataKey="labelStr" position="right" fill="#64748B" fontSize={11} fontWeight="bold" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
