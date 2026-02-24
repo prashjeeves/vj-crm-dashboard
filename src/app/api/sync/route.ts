@@ -8,8 +8,18 @@ import { RawOpportunity, RawCustomer, SnapshotConfig } from "@/lib/types";
 
 export async function POST() {
     try {
+        if (process.env.VERCEL === "1") {
+            return NextResponse.json({ error: "Auto-Sync from a local folder is disabled on Vercel. Please upload your files manually." }, { status: 403 });
+        }
+
         const rootDir = process.cwd();
         const excelDir = path.join(rootDir, "ExcelFiles");
+
+        try {
+            await fs.access(excelDir);
+        } catch {
+            return NextResponse.json({ error: "The local 'ExcelFiles' folder was not found. Please create it in the root directory and place your Excel files inside it." }, { status: 404 });
+        }
 
         // Find newest files from directory
         const files = await fs.readdir(excelDir);

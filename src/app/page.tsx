@@ -57,7 +57,7 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(val);
   };
 
-  const budget2026 = 15000000; // Hardcoded example 15M budget roughly
+  const budget2026 = 5750000; // Hardcoded 2026 Budget of 5.75M
   const budgetRatio = (metrics.openPipelineValueGbp / budget2026) * 100;
 
   const PIE_COLORS = ['#3B4A54', '#F37021', '#ECA338', '#4B5563', '#10B981'];
@@ -113,12 +113,12 @@ export default function DashboardPage() {
           />
           <KpiCard
             title="Budget 2026 Coverage"
-            helpText="Calculated as (Open Pipeline / £15,000,000 Annual Budget) * 100."
+            helpText="Calculated as (Open Pipeline / £5,750,000 Annual Budget) * 100."
             value={`${budgetRatio.toFixed(1)}%`}
             icon={TrendingUp}
             trend={budgetRatio >= 50 ? "On Track" : "Action Required"}
             positive={budgetRatio >= 50}
-            subtitle="Annual Target: £15,000,000"
+            subtitle="Annual Target: £5,750,000"
           />
         </div>
 
