@@ -124,13 +124,27 @@ export function processPipelineData(
             }
         }
 
+        // Country Name Aliasing
+        let parsedCountry = (raw["Country Name"] || raw["Country"] || "").trim();
+        const countryUpper = parsedCountry.toUpperCase();
+
+        if (["UNITED KINGDOM", "UNITED KINGDOM OF GREAT BRITAIN AND NORTHERN IRELAND", "GREAT BRITAIN", "ENGLAND", "SCOTLAND", "WALES", "NORTHERN IRELAND"].includes(countryUpper)) {
+            parsedCountry = "UK";
+        } else if (["UNITED STATES", "UNITED STATES OF AMERICA", "US"].includes(countryUpper)) {
+            parsedCountry = "USA";
+        } else if (["UNITED ARAB EMIRATES"].includes(countryUpper)) {
+            parsedCountry = "UAE";
+        } else if (["SOUTH KOREA", "REPUBLIC OF KOREA", "KOREA, REPUBLIC OF", "KOREA"].includes(countryUpper)) {
+            parsedCountry = "Korea";
+        }
+
         // Construct final parsed object
         opportunities.push({
             id,
             createdOn: createdOn || new Date(0),
             accountName,
             description: raw["Description"] || "",
-            country: raw["Country Name"] || raw["Country"] || "",
+            country: parsedCountry,
             nativeTotal: raw["Total"],
             nativeCurrency: raw["Currency"],
             status: raw["Status"],
