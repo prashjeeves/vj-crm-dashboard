@@ -5,8 +5,10 @@ import { TopBar } from "@/components/TopBar";
 import { UploadZone } from "@/components/UploadZone";
 import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity } from "lucide-react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 export default function GrowthMetricsPage() {
+    const router = useRouter();
     const { isLoaded, currentSnapshot, previousSnapshot, opportunities } = useDashboard();
 
     if (!isLoaded || !currentSnapshot) {
@@ -223,7 +225,12 @@ export default function GrowthMetricsPage() {
                                             const s = yearStats.get(yr)!;
                                             const winRatio = s.wonCount + s.lostCount > 0 ? (s.wonCount / (s.wonCount + s.lostCount)) * 100 : 0;
                                             return (
-                                                <tr key={yr} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                                <tr
+                                                    key={yr}
+                                                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer hover:ring-2 hover:ring-vjtech-accent/50 hover:ring-inset"
+                                                    onClick={() => router.push(`/explorer?createdAfter=${yr}-01-01T00:00:00.000Z&createdBefore=${yr}-12-31T23:59:59.999Z`)}
+                                                    title={`View all opportunities created in ${yr}`}
+                                                >
                                                     <td className="py-4 px-4 font-black text-slate-800 border-r border-slate-100 text-base">{yr}</td>
                                                     <td className="py-4 px-4 text-center font-medium text-slate-600">{s.createdCount.toLocaleString()}</td>
                                                     <td className="py-4 px-4 text-center font-bold text-emerald-600">{s.wonCount.toLocaleString()}</td>

@@ -116,60 +116,8 @@ export default function PipelineAnalyticsPage() {
 
             <div className="p-8 space-y-8 max-w-[1600px] w-full mx-auto">
 
-                {/* Ageing Matrix */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-slate-800 flex items-center">
-                            <Clock className="w-5 h-5 mr-2 text-vjtech-accent" /> Regional Ageing Matrix (GBP)
-                        </h3>
-                    </div>
-
-                    <div className="overflow-x-auto rounded-xl border border-slate-200">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-[#1E293B] text-slate-300">
-                                <tr>
-                                    <th className="py-4 px-4 font-semibold w-1/5">Region</th>
-                                    {AGE_BANDS.map(band => (
-                                        <th key={band} className="py-4 px-2 font-semibold text-right">{band} Days</th>
-                                    ))}
-                                    <th className="py-4 px-4 font-bold text-white text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {matrixRegions.map(([region, map]) => {
-                                    const regionTotal = AGE_BANDS.reduce((sum, b) => sum + map[b], 0);
-                                    return (
-                                        <tr key={region} className="border-b border-slate-100 hover:bg-vjtech-accent/5 transition-colors">
-                                            <td className="py-3 px-4 font-medium text-slate-800 border-r border-slate-100">{region}</td>
-                                            {AGE_BANDS.map(band => (
-                                                <td key={band} className={`py-3 px-2 text-right ${map[band] > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
-                                                    {map[band] > 0 ? formatCurrency(map[band]) : '-'}
-                                                </td>
-                                            ))}
-                                            <td className="py-3 px-4 text-right font-bold text-slate-900 border-l border-slate-100">{formatCurrency(regionTotal)}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
-                                <tr>
-                                    <td className="py-4 px-4 font-bold text-slate-900 border-r border-slate-200">Grand Total</td>
-                                    {AGE_BANDS.map(band => (
-                                        <td key={band} className="py-4 px-2 text-right font-semibold text-vjtech-accent">
-                                            {totalByBand[band] > 0 ? formatCurrency(totalByBand[band]) : '-'}
-                                        </td>
-                                    ))}
-                                    <td className="py-4 px-4 text-right font-black text-slate-900 border-l border-slate-200">
-                                        {formatCurrency(AGE_BANDS.reduce((sum, b) => sum + totalByBand[b], 0))}
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-
                 {/* 2026 Forecast Matrix */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm overflow-hidden mt-8">
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm overflow-hidden">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center">
                             <Clock className="w-5 h-5 mr-2 text-indigo-500" /> 2026 Regional Revenue Forecast (Based on Est. Close Date)
@@ -230,7 +178,16 @@ export default function PipelineAnalyticsPage() {
                                         {forecastTotalByCol['Past'] > 0 ? formatCurrency(forecastTotalByCol['Past']) : '-'}
                                     </td>
                                     {forecastMonths.map(m => (
-                                        <td key={m} className="py-4 px-2 text-right font-semibold text-vjtech-accent">
+                                        <td
+                                            key={m}
+                                            className={`py-4 px-2 text-right font-semibold transition-all ${forecastTotalByCol[m] > 0 ? 'text-vjtech-accent cursor-pointer hover:ring-2 hover:ring-vjtech-accent hover:ring-inset bg-white' : 'text-slate-400/50'}`}
+                                            onClick={() => {
+                                                if (forecastTotalByCol[m] > 0) {
+                                                    router.push(`/explorer?closeMonth=${m}`);
+                                                }
+                                            }}
+                                            title={forecastTotalByCol[m] > 0 ? `Click to view all deals closing in ${m}` : undefined}
+                                        >
                                             {forecastTotalByCol[m] > 0 ? formatCurrency(forecastTotalByCol[m]) : '-'}
                                         </td>
                                     ))}
@@ -239,6 +196,58 @@ export default function PipelineAnalyticsPage() {
                                     </td>
                                     <td className="py-4 px-4 text-right font-black text-slate-900 border-l border-slate-200">
                                         {formatCurrency(forecastTotalByCol['Past'] + forecastMonths.reduce((sum, m) => sum + forecastTotalByCol[m], 0) + forecastTotalByCol['Future'])}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Ageing Matrix */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm overflow-hidden mt-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                            <Clock className="w-5 h-5 mr-2 text-vjtech-accent" /> Regional Ageing Matrix (GBP)
+                        </h3>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-slate-200">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-[#1E293B] text-slate-300">
+                                <tr>
+                                    <th className="py-4 px-4 font-semibold w-1/5">Region</th>
+                                    {AGE_BANDS.map(band => (
+                                        <th key={band} className="py-4 px-2 font-semibold text-right">{band} Days</th>
+                                    ))}
+                                    <th className="py-4 px-4 font-bold text-white text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {matrixRegions.map(([region, map]) => {
+                                    const regionTotal = AGE_BANDS.reduce((sum, b) => sum + map[b], 0);
+                                    return (
+                                        <tr key={region} className="border-b border-slate-100 hover:bg-vjtech-accent/5 transition-colors">
+                                            <td className="py-3 px-4 font-medium text-slate-800 border-r border-slate-100">{region}</td>
+                                            {AGE_BANDS.map(band => (
+                                                <td key={band} className={`py-3 px-2 text-right ${map[band] > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                                                    {map[band] > 0 ? formatCurrency(map[band]) : '-'}
+                                                </td>
+                                            ))}
+                                            <td className="py-3 px-4 text-right font-bold text-slate-900 border-l border-slate-100">{formatCurrency(regionTotal)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                                <tr>
+                                    <td className="py-4 px-4 font-bold text-slate-900 border-r border-slate-200">Grand Total</td>
+                                    {AGE_BANDS.map(band => (
+                                        <td key={band} className="py-4 px-2 text-right font-semibold text-vjtech-accent">
+                                            {totalByBand[band] > 0 ? formatCurrency(totalByBand[band]) : '-'}
+                                        </td>
+                                    ))}
+                                    <td className="py-4 px-4 text-right font-black text-slate-900 border-l border-slate-200">
+                                        {formatCurrency(AGE_BANDS.reduce((sum, b) => sum + totalByBand[b], 0))}
                                     </td>
                                 </tr>
                             </tfoot>

@@ -25,15 +25,23 @@ function ExplorerContent() {
 
     const regionParam = searchParams.get('region');
     const closeMonthParam = searchParams.get('closeMonth');
+    const createdAfterParam = searchParams.get('createdAfter');
+    const createdBeforeParam = searchParams.get('createdBefore');
 
     useEffect(() => {
-        if (regionParam && filters.region !== regionParam) {
+        if (regionParam !== filters.region) {
             setFilter('region', regionParam);
         }
-        if (closeMonthParam && filters.closeMonth !== closeMonthParam) {
+        if (closeMonthParam !== filters.closeMonth) {
             setFilter('closeMonth', closeMonthParam);
         }
-    }, [regionParam, closeMonthParam, filters.region, filters.closeMonth, setFilter]);
+        if (createdAfterParam !== filters.createdAfter) {
+            setFilter('createdAfter', createdAfterParam);
+        }
+        if (createdBeforeParam !== filters.createdBefore) {
+            setFilter('createdBefore', createdBeforeParam);
+        }
+    }, [regionParam, closeMonthParam, createdAfterParam, createdBeforeParam, filters.region, filters.closeMonth, filters.createdAfter, filters.createdBefore, setFilter]);
 
     const activeOpps = useMemo(() => isLoaded ? filterOpportunities(opportunities, filters) : [], [isLoaded, opportunities, filters]);
 
@@ -114,7 +122,6 @@ function ExplorerContent() {
                                 <span>Filtering exactly Region: {filters.region}</span>
                                 <button
                                     onClick={() => {
-                                        setFilter('region', null);
                                         const newParams = new URLSearchParams(searchParams.toString());
                                         newParams.delete('region');
                                         router.push(`/explorer?${newParams.toString()}`);
@@ -132,13 +139,30 @@ function ExplorerContent() {
                                 <span>Closing in: {filters.closeMonth}</span>
                                 <button
                                     onClick={() => {
-                                        setFilter('closeMonth', null);
                                         const newParams = new URLSearchParams(searchParams.toString());
                                         newParams.delete('closeMonth');
                                         router.push(`/explorer?${newParams.toString()}`);
                                     }}
                                     className="text-indigo-400 hover:text-indigo-600 p-1"
                                     title="Clear Month Filter"
+                                >
+                                    <XCircle className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        {(filters.createdAfter || filters.createdBefore) && (
+                            <div className="flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-semibold">
+                                <span>Created: {filters.createdAfter ? filters.createdAfter.split('T')[0] : 'Any'} to {filters.createdBefore ? filters.createdBefore.split('T')[0] : 'Any'}</span>
+                                <button
+                                    onClick={() => {
+                                        const newParams = new URLSearchParams(searchParams.toString());
+                                        newParams.delete('createdAfter');
+                                        newParams.delete('createdBefore');
+                                        router.push(`/explorer?${newParams.toString()}`);
+                                    }}
+                                    className="text-emerald-400 hover:text-emerald-600 p-1"
+                                    title="Clear Date Filter"
                                 >
                                     <XCircle className="w-4 h-4" />
                                 </button>
