@@ -124,6 +124,12 @@ export function processPipelineData(
             }
         }
 
+        // Apply UK & Ireland Override
+        const countryUpper = (raw["Country Name"] || raw["Country"] || "").trim().toUpperCase();
+        if (["UNITED KINGDOM", "UK", "GREAT BRITAIN", "ENGLAND", "SCOTLAND", "WALES", "NORTHERN IRELAND", "IRELAND", "REPUBLIC OF IRELAND", "ROI"].includes(countryUpper)) {
+            salesRegion = "UK and Ireland";
+        }
+
         // Construct final parsed object
         opportunities.push({
             id,

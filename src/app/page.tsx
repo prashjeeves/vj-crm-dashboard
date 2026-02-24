@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useDashboard } from "@/components/DashboardProvider";
@@ -35,6 +36,7 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const { isLoaded, opportunities, filters, currentSnapshot, previousSnapshot, report } = useDashboard();
+  const [geoView, setGeoView] = useState<'region' | 'country'>('region');
 
   if (!isLoaded) {
     return (
@@ -59,6 +61,25 @@ export default function DashboardPage() {
   const budgetRatio = (metrics.openPipelineValueGbp / budget2026) * 100;
 
   const PIE_COLORS = ['#3B4A54', '#F37021', '#ECA338', '#4B5563', '#10B981'];
+
+  // Calculate Pie Chart safely with 'Other' slice to ensure 100% representation
+  const topClasses = metrics.byClass.slice(0, 4);
+  const otherClassValue = metrics.byClass.slice(4).reduce((sum, c) => sum + c.value, 0);
+  const pieData = [...topClasses];
+  if (otherClassValue > 0) {
+    pieData.push({ name: 'Other', value: otherClassValue });
+  }
+
+  // Calculate geographic chart data with percentage labels
+  const regionData = metrics.byRegion.map(r => ({
+    ...r,
+    labelStr: `${r.count} Deals (${metrics.weightedPipelineValue > 0 ? ((r.value / metrics.weightedPipelineValue) * 100).toFixed(1) : 0}%)`
+  }));
+  const countryData = metrics.byCountry.slice(0, 15).map(c => ({
+    ...c,
+    labelStr: `${c.count} Deals (${metrics.weightedPipelineValue > 0 ? ((c.value / metrics.weightedPipelineValue) * 100).toFixed(1) : 0}%)`
+  }));
+  const activeGeoData = geoView === 'region' ? regionData : countryData;
 
   return (
     <div className="flex-1 flex flex-col bg-[#F8FAFC] min-h-screen">
@@ -92,22 +113,29 @@ export default function DashboardPage() {
           />
           <KpiCard
             title="Budget 2026 Coverage"
-            helpText="Calculated as (Open Pipeline / £15,000,000 Target) * 100."
+            helpText="Calculated as (Open Pipeline / £15,000,000 Annual Budget) * 100."
             value={`${budgetRatio.toFixed(1)}%`}
             icon={TrendingUp}
             trend={budgetRatio >= 50 ? "On Track" : "Action Required"}
             positive={budgetRatio >= 50}
+            subtitle="Annual Target: £15,000,000"
           />
         </div>
 
         {/* Chart Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm relative">
-            <h3 className="text-lg font-bold text-slate-800 mb-6">Pipeline by Region</h3>
-            <div className="h-[300px] w-full">
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm relative flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-slate-800">Pipeline by {geoView === 'region' ? 'Region' : 'Country'}</h3>
+              <div className="bg-slate-100 p-1 rounded-lg flex text-sm font-semibold">
+                <button onClick={() => setGeoView('region')} className={`px-4 py-1.5 rounded-md transition-all ${geoView === 'region' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>Regions</button>
+                <button onClick={() => setGeoView('country')} className={`px-4 py-1.5 rounded-md transition-all ${geoView === 'country' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>Countries</button>
+              </div>
+            </div>
+            <div className="h-[300px] w-full flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.byRegion} layout="vertical" margin={{ left: 40, right: 60 }}>
+                <BarChart data={activeGeoData} layout="vertical" margin={{ left: 40, right: 120 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
                   <XAxis type="number" tickFormatter={(val) => `£${(val / 1000000).toFixed(1)}M`} stroke="#94A3B8" fontSize={12} />
                   <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={120} />
@@ -115,7 +143,7 @@ export default function DashboardPage() {
                     cursor={{ fill: '#F1F5F9' }}
                     formatter={(val: number) => [
                       `${formatCurrency(val)}`,
-                      "Open Pipeline"
+                      "Weighted Pipeline"
                     ]}
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
@@ -123,11 +151,11 @@ export default function DashboardPage() {
                     dataKey="value"
                     fill="#F37021"
                     radius={[0, 4, 4, 0]}
-                    barSize={24}
+                    barSize={geoView === 'country' ? 16 : 24}
                     className="cursor-pointer hover:brightness-110 transition-all"
                     onClick={(data) => router.push(`/explorer?region=${encodeURIComponent(data.name)}`)}
                   >
-                    <LabelList dataKey="count" position="right" formatter={(val: number) => `${val} Opps`} fill="#64748B" fontSize={12} fontWeight="bold" />
+                    <LabelList dataKey="labelStr" position="right" fill="#64748B" fontSize={11} fontWeight="bold" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -143,7 +171,7 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={metrics.byClass.length > 0 ? metrics.byClass : [{ name: 'Empty', value: 1 }]}
+                    data={pieData.length > 0 ? pieData : [{ name: 'Empty', value: 1 }]}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -151,7 +179,7 @@ export default function DashboardPage() {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {metrics.byClass.map((entry, index) => (
+                    {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
@@ -160,14 +188,14 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
             <div className="mt-4 space-y-2">
-              {metrics.byClass.slice(0, 4).map((c, i) => (
+              {pieData.map((c, i) => (
                 <div key={c.name} className="flex items-center justify-between text-sm">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
                     <span className="text-slate-600 truncate max-w-[120px]">{c.name}</span>
                   </div>
                   <span className="font-semibold text-slate-900">
-                    {metrics.openPipelineValueGbp > 0 ? ((c.value / metrics.openPipelineValueGbp) * 100).toFixed(1) : 0}%
+                    {metrics.weightedPipelineValue > 0 ? ((c.value / metrics.weightedPipelineValue) * 100).toFixed(1) : 0}%
                   </span>
                 </div>
               ))}

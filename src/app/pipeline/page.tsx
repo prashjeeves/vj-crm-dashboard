@@ -94,6 +94,20 @@ export default function PipelineAnalyticsPage() {
     // Top Opps
     const topOpps = [...activeOpps].sort((a, b) => b.valueGbp - a.valueGbp).slice(0, 10);
 
+    const maxMonthForecastValue = Math.max(
+        1,
+        ...forecastMatrixRegions.flatMap(([, map]) =>
+            forecastMonths.map(m => map[m])
+        )
+    );
+
+    const getHeatmapBg = (val: number) => {
+        if (val === 0) return 'transparent';
+        const ratio = Math.min(1, val / maxMonthForecastValue);
+        const opacity = 0.05 + (ratio * 0.65);
+        return `rgba(99, 102, 241, ${opacity})`;
+    };
+
     return (
         <div className="flex-1 flex flex-col bg-[#F8FAFC] min-h-screen">
             <TopBar title="Pipeline Analytics" />
@@ -183,7 +197,7 @@ export default function PipelineAnalyticsPage() {
                                                 {map['Past'] > 0 ? formatCurrency(map['Past']) : '-'}
                                             </td>
                                             {forecastMonths.map(m => (
-                                                <td key={m} className={`py-3 px-2 text-right ${map[m] > 0 ? 'text-slate-700 font-medium' : 'text-slate-300'}`}>
+                                                <td key={m} className={`py-3 px-2 text-right border-x border-white/50 ${map[m] > 0 ? 'text-slate-800 font-semibold drop-shadow-sm' : 'text-slate-400/50'}`} style={{ backgroundColor: getHeatmapBg(map[m]) }}>
                                                     {map[m] > 0 ? formatCurrency(map[m]) : '-'}
                                                 </td>
                                             ))}
