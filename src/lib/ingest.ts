@@ -86,7 +86,16 @@ export function processPipelineData(
         }
 
         // STATUS - Open Pipeline Business Logic
-        const isOpen = isOpenPipeline(raw["Status"]);
+        let status = raw["Status"] || "Unknown";
+        const reason = (raw["Reason"] || "").trim();
+        let isDormant = false;
+
+        if (status.toLowerCase() === 'lost' && reason.toLowerCase() === 'on hold') {
+            status = 'Dormant';
+            isDormant = true;
+        }
+
+        const isOpen = isOpenPipeline(status);
         if (isOpen) report.openOpportunities++;
 
         // AGEING
@@ -166,13 +175,15 @@ export function processPipelineData(
             country: parsedCountry,
             nativeTotal: raw["Total"],
             nativeCurrency: raw["Currency"],
-            status: raw["Status"],
+            status,
             stageOrig: raw["Stage"] || "",
             estimatedCloseDate: estimatedCloseDate || new Date(0),
             owner: raw["Owner"] || "",
             userProbOrig: raw["User Defined Probability"] || null,
+            reason: raw["Reason"] || null,
 
             isOpen,
+            isDormant,
             stageProbability: stageProb,
             userProbability: userProb,
             ageDays,

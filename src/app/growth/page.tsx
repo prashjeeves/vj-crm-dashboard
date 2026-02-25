@@ -3,19 +3,19 @@
 import { useDashboard } from "@/components/DashboardProvider";
 import { TopBar } from "@/components/TopBar";
 import { UploadZone } from "@/components/UploadZone";
-import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity, ChevronRight, ChevronDown, ExternalLink, Users } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity, ChevronRight, ChevronDown, ExternalLink, Users, PlayCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import React, { useState, Fragment } from "react";
 import {
-    BarChart,
-    Bar,
+    LineChart,
+    Line,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    LabelList
+    Legend
 } from 'recharts';
 
 export default function GrowthMetricsPage() {
@@ -23,14 +23,7 @@ export default function GrowthMetricsPage() {
     const { isLoaded, currentSnapshot, previousSnapshot, opportunities } = useDashboard();
     const [expandedYear, setExpandedYear] = useState<number | null>(null);
     const [expandedAccountYear, setExpandedAccountYear] = useState<number | null>(null);
-    const [chartYear, setChartYear] = useState<number | null>(null);
-
-    // Set a default chart year on first render
-    React.useEffect(() => {
-        if (!chartYear && opportunities && opportunities.length > 0) {
-            setChartYear(new Date().getFullYear());
-        }
-    }, [opportunities, chartYear]);
+    const [showAllChartCountries, setShowAllChartCountries] = useState(false);
 
     if (!isLoaded || !currentSnapshot) {
         return (
@@ -146,16 +139,42 @@ export default function GrowthMetricsPage() {
     }
 
     const sortedAccountYears = Array.from(newAccountsByYear.keys()).sort((a, b) => b - a);
+    const ascendingAccountYears = [...sortedAccountYears].reverse();
 
-    // Top 5 Countries for the selected Chart Year
-    let topChartCountries: { name: string, accounts: number }[] = [];
-    if (chartYear && newAccountsByYear.has(chartYear)) {
-        const yearData = newAccountsByYear.get(chartYear)!;
-        topChartCountries = Array.from(yearData.countries.entries())
-            .map(([name, accounts]) => ({ name, accounts }))
-            .sort((a, b) => b.accounts - a.accounts)
-            .slice(0, 5);
-    }
+    // Data Transformation for Recharts LineChart
+    const lineChartData: { year: string;[key: string]: string | number }[] = [];
+    const allKnownCountries = new Set<string>();
+    const countryLifetimeAcquisitions = new Map<string, number>();
+
+    ascendingAccountYears.forEach(yr => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const yearObj: any = { year: yr.toString() };
+        const dataForYear = newAccountsByYear.get(yr)!;
+
+        dataForYear.countries.forEach((val, country) => {
+            yearObj[country] = val;
+            allKnownCountries.add(country);
+            countryLifetimeAcquisitions.set(country, (countryLifetimeAcquisitions.get(country) || 0) + val);
+        });
+
+        lineChartData.push(yearObj);
+    });
+
+    // Determine Top 5 countries across all time for default filtering focus
+    const top5CountriesAllTime = Array.from(countryLifetimeAcquisitions.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(entry => entry[0]);
+
+    const activeChartCountries = showAllChartCountries
+        ? Array.from(allKnownCountries)
+        : top5CountriesAllTime;
+
+    // Distinct robust colors for lines
+    const lineColors = [
+        "#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6",
+        "#06B6D4", "#F97316", "#EC4899", "#84CC16", "#14B8A6"
+    ];
 
     const sortedYears = Array.from(yearStats.keys()).sort((a, b) => b - a); // descending
 
@@ -434,6 +453,18 @@ export default function GrowthMetricsPage() {
                                                                     {count.toLocaleString()}
                                                                     <span className="text-[10px] text-slate-400 ml-2 font-bold" title="% of Year's Total Created Accounts">({pShare.toFixed(1)}%)</span>
                                                                 </td>
+                                                                <td className="py-2.5 px-4 text-right">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            router.push(`/customers`);
+                                                                        }}
+                                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded text-slate-400 transition-all inline-flex"
+                                                                        title="View Customers"
+                                                                    >
+                                                                        <PlayCircle className="w-4 h-4" />
+                                                                    </button>
+                                                                </td>
                                                             </tr>
                                                         );
                                                     })}
@@ -445,40 +476,45 @@ export default function GrowthMetricsPage() {
                             </div>
                         </div>
 
-                        {/* Top Growth Countries Bar Chart */}
-                        <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm lg:col-span-1 flex flex-col">
+                        {/* Growth Countries Line Chart */}
+                        <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm lg:col-span-1 flex flex-col h-full self-start">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-md font-bold text-slate-800">Top Growth Countries</h3>
-                                <select
-                                    value={chartYear || ''}
-                                    onChange={(e) => setChartYear(parseInt(e.target.value))}
-                                    className="text-xs bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-slate-600 font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-vjtech-accent"
+                                <h3 className="text-md font-bold text-slate-800">Growth by Country</h3>
+                                <button
+                                    onClick={() => setShowAllChartCountries(!showAllChartCountries)}
+                                    className="text-xs font-bold text-vjtech-accent bg-vjtech-accent/10 px-3 py-1.5 rounded-md hover:bg-vjtech-accent/20 transition-colors"
                                 >
-                                    {sortedAccountYears.map(yr => (
-                                        <option key={yr} value={yr}>{yr}</option>
-                                    ))}
-                                </select>
+                                    {showAllChartCountries ? "Filter to Top 5" : "Show All Countries"}
+                                </button>
                             </div>
 
-                            <div className="flex-1 w-full min-h-[300px]">
-                                {topChartCountries.length > 0 ? (
+                            <div className="w-full h-[400px]">
+                                {lineChartData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={topChartCountries} layout="vertical" margin={{ left: 10, right: 30, top: 10, bottom: 10 }}>
-                                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
-                                            <XAxis type="number" stroke="#94A3B8" fontSize={12} allowDecimals={false} />
-                                            <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={80} />
+                                        <LineChart data={lineChartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                            <XAxis dataKey="year" stroke="#94A3B8" fontSize={11} tickMargin={8} axisLine={false} tickLine={false} />
+                                            <YAxis stroke="#94A3B8" fontSize={11} axisLine={false} tickLine={false} allowDecimals={false} />
                                             <Tooltip
-                                                cursor={{ fill: '#F1F5F9' }}
-                                                formatter={(val: number) => [`${val} Accounts`, "New Acquired"]}
                                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                             />
-                                            <Bar dataKey="accounts" fill="#10B981" radius={[0, 4, 4, 0]} barSize={24}>
-                                                <LabelList dataKey="accounts" position="right" fill="#64748B" fontSize={11} fontWeight="bold" />
-                                            </Bar>
-                                        </BarChart>
+                                            <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }} />
+                                            {activeChartCountries.map((countryName, idx) => (
+                                                <Line
+                                                    key={countryName}
+                                                    type="monotone"
+                                                    dataKey={countryName}
+                                                    stroke={lineColors[idx % lineColors.length]}
+                                                    strokeWidth={2}
+                                                    dot={{ r: 3, fill: lineColors[idx % lineColors.length], strokeWidth: 0 }}
+                                                    activeDot={{ r: 5 }}
+                                                    connectNulls
+                                                />
+                                            ))}
+                                        </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="flex items-center justify-center h-full text-sm text-slate-400 italic">No data available for this year.</div>
+                                    <div className="flex items-center justify-center h-full text-sm text-slate-400 italic">No data available.</div>
                                 )}
                             </div>
                         </div>

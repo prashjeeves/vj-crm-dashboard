@@ -8,7 +8,9 @@ import {
     LayoutDashboard,
     BarChart3,
     PieChart,
-    Layers
+    Layers,
+    Users,
+    PauseCircle
 } from "lucide-react";
 
 export function Sidebar() {
@@ -19,6 +21,8 @@ export function Sidebar() {
         { name: "Opportunity Explorer", href: "/explorer", icon: Layers },
         { name: "Pipeline Analytics", href: "/pipeline", icon: BarChart3 },
         { name: "Growth Metrics", href: "/growth", icon: PieChart },
+        { name: "Customer Base", href: "/customers", icon: Users },
+        { name: "Dormant Enquiries", href: "/dormant", icon: PauseCircle },
     ];
 
     return (

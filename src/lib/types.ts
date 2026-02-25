@@ -43,9 +43,11 @@ export interface ParsedOpportunity {
     estimatedCloseDate: Date;
     owner: string;
     userProbOrig: string | null;
+    reason: string | null;
 
     // Computed Deterministic Fields
     isOpen: boolean;
+    isDormant: boolean;
     stageProbability: number | null;
     userProbability: number | null;
     ageDays: number;
