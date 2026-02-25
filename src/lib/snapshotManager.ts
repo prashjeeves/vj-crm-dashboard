@@ -37,6 +37,18 @@ export async function getDb() {
       wonLast30DaysValue REAL NOT NULL,
       lostLast30DaysCount INTEGER NOT NULL,
       lostLast30DaysValue REAL NOT NULL,
+      createdLast6MonthsCount INTEGER,
+      createdLast6MonthsValue REAL,
+      wonLast6MonthsCount INTEGER,
+      wonLast6MonthsValue REAL,
+      lostLast6MonthsCount INTEGER,
+      lostLast6MonthsValue REAL,
+      createdLast12MonthsCount INTEGER,
+      createdLast12MonthsValue REAL,
+      wonLast12MonthsCount INTEGER,
+      wonLast12MonthsValue REAL,
+      lostLast12MonthsCount INTEGER,
+      lostLast12MonthsValue REAL,
       byRegionCount TEXT,
       byRegionValue TEXT
     )
@@ -45,9 +57,23 @@ export async function getDb() {
     try {
         await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN byRegionCount TEXT`);
         await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN byRegionValue TEXT`);
-    } catch {
-        // Columns already exist
-    }
+    } catch { }
+
+    try {
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN createdLast6MonthsCount INTEGER DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN createdLast6MonthsValue REAL DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN wonLast6MonthsCount INTEGER DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN wonLast6MonthsValue REAL DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN lostLast6MonthsCount INTEGER DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN lostLast6MonthsValue REAL DEFAULT 0`);
+
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN createdLast12MonthsCount INTEGER DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN createdLast12MonthsValue REAL DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN wonLast12MonthsCount INTEGER DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN wonLast12MonthsValue REAL DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN lostLast12MonthsCount INTEGER DEFAULT 0`);
+        await dbInstance.exec(`ALTER TABLE snapshots ADD COLUMN lostLast12MonthsValue REAL DEFAULT 0`);
+    } catch { }
 
     return dbInstance;
 }
@@ -63,8 +89,14 @@ export async function saveSnapshot(snapshot: SnapshotConfig): Promise<void> {
       createdLast30DaysCount, createdLast30DaysValue,
       wonLast30DaysCount, wonLast30DaysValue,
       lostLast30DaysCount, lostLast30DaysValue,
+      createdLast6MonthsCount, createdLast6MonthsValue,
+      wonLast6MonthsCount, wonLast6MonthsValue,
+      lostLast6MonthsCount, lostLast6MonthsValue,
+      createdLast12MonthsCount, createdLast12MonthsValue,
+      wonLast12MonthsCount, wonLast12MonthsValue,
+      lostLast12MonthsCount, lostLast12MonthsValue,
       byRegionCount, byRegionValue
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             snapshot.timestamp,
             snapshot.openPipelineValueGbp,
@@ -81,6 +113,18 @@ export async function saveSnapshot(snapshot: SnapshotConfig): Promise<void> {
             snapshot.wonLast30DaysValue,
             snapshot.lostLast30DaysCount,
             snapshot.lostLast30DaysValue,
+            snapshot.createdLast6MonthsCount,
+            snapshot.createdLast6MonthsValue,
+            snapshot.wonLast6MonthsCount,
+            snapshot.wonLast6MonthsValue,
+            snapshot.lostLast6MonthsCount,
+            snapshot.lostLast6MonthsValue,
+            snapshot.createdLast12MonthsCount,
+            snapshot.createdLast12MonthsValue,
+            snapshot.wonLast12MonthsCount,
+            snapshot.wonLast12MonthsValue,
+            snapshot.lostLast12MonthsCount,
+            snapshot.lostLast12MonthsValue,
             JSON.stringify(snapshot.byRegionCount || {}),
             JSON.stringify(snapshot.byRegionValue || {})
         ]
@@ -94,10 +138,25 @@ export async function getLatestSnapshots(limit: number = 2): Promise<SnapshotCon
         createdLast7DaysCount: number; createdLast7DaysValue: number; wonLast7DaysCount: number; wonLast7DaysValue: number;
         lostLast7DaysCount: number; lostLast7DaysValue: number; createdLast30DaysCount: number; createdLast30DaysValue: number;
         wonLast30DaysCount: number; wonLast30DaysValue: number; lostLast30DaysCount: number; lostLast30DaysValue: number;
+        createdLast6MonthsCount: number; createdLast6MonthsValue: number; wonLast6MonthsCount: number; wonLast6MonthsValue: number;
+        lostLast6MonthsCount: number; lostLast6MonthsValue: number; createdLast12MonthsCount: number; createdLast12MonthsValue: number;
+        wonLast12MonthsCount: number; wonLast12MonthsValue: number; lostLast12MonthsCount: number; lostLast12MonthsValue: number;
         byRegionCount?: string; byRegionValue?: string;
     }[]>(`SELECT * FROM snapshots ORDER BY timestamp DESC LIMIT ?`, [limit]);
     return rows.map(r => ({
         ...r,
+        createdLast6MonthsCount: r.createdLast6MonthsCount || 0,
+        createdLast6MonthsValue: r.createdLast6MonthsValue || 0,
+        wonLast6MonthsCount: r.wonLast6MonthsCount || 0,
+        wonLast6MonthsValue: r.wonLast6MonthsValue || 0,
+        lostLast6MonthsCount: r.lostLast6MonthsCount || 0,
+        lostLast6MonthsValue: r.lostLast6MonthsValue || 0,
+        createdLast12MonthsCount: r.createdLast12MonthsCount || 0,
+        createdLast12MonthsValue: r.createdLast12MonthsValue || 0,
+        wonLast12MonthsCount: r.wonLast12MonthsCount || 0,
+        wonLast12MonthsValue: r.wonLast12MonthsValue || 0,
+        lostLast12MonthsCount: r.lostLast12MonthsCount || 0,
+        lostLast12MonthsValue: r.lostLast12MonthsValue || 0,
         byRegionCount: r.byRegionCount ? JSON.parse(r.byRegionCount) : {},
         byRegionValue: r.byRegionValue ? JSON.parse(r.byRegionValue) : {}
     }));

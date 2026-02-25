@@ -228,7 +228,7 @@ export default function DashboardPage() {
               </h3>
               <select
                 value={velocityWindow}
-                onChange={(e) => setVelocityWindow(e.target.value as any)}
+                onChange={(e) => setVelocityWindow(e.target.value as '7d' | '30d' | '6m' | '12m')}
                 className="text-xs bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-slate-600 font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-vjtech-accent"
               >
                 <option value="7d">7 Days</option>

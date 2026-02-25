@@ -106,9 +106,19 @@ export async function POST() {
         let wonLast30DaysCount = 0; let wonLast30DaysValue = 0;
         let lostLast30DaysCount = 0; let lostLast30DaysValue = 0;
 
+        let createdLast6MonthsCount = 0; let createdLast6MonthsValue = 0;
+        let wonLast6MonthsCount = 0; let wonLast6MonthsValue = 0;
+        let lostLast6MonthsCount = 0; let lostLast6MonthsValue = 0;
+
+        let createdLast12MonthsCount = 0; let createdLast12MonthsValue = 0;
+        let wonLast12MonthsCount = 0; let wonLast12MonthsValue = 0;
+        let lostLast12MonthsCount = 0; let lostLast12MonthsValue = 0;
+
         const today = new Date();
         const msIn7Days = 7 * 24 * 60 * 60 * 1000;
         const msIn30Days = 30 * 24 * 60 * 60 * 1000;
+        const msIn6Months = 182 * 24 * 60 * 60 * 1000;
+        const msIn12Months = 365 * 24 * 60 * 60 * 1000;
 
         for (const opp of opportunities) {
             if (opp.isOpen) {
@@ -123,17 +133,23 @@ export async function POST() {
             const createdAgeMs = today.getTime() - opp.createdOn.getTime();
             if (createdAgeMs <= msIn7Days) { createdLast7DaysCount++; createdLast7DaysValue += opp.valueGbp; }
             if (createdAgeMs <= msIn30Days) { createdLast30DaysCount++; createdLast30DaysValue += opp.valueGbp; }
+            if (createdAgeMs <= msIn6Months) { createdLast6MonthsCount++; createdLast6MonthsValue += opp.valueGbp; }
+            if (createdAgeMs <= msIn12Months) { createdLast12MonthsCount++; createdLast12MonthsValue += opp.valueGbp; }
 
             if (opp.status.toLowerCase() === 'won' && opp.estimatedCloseDate) {
                 const closedAgeMs = today.getTime() - opp.estimatedCloseDate.getTime();
                 if (closedAgeMs <= msIn7Days) { wonLast7DaysCount++; wonLast7DaysValue += opp.valueGbp; }
                 if (closedAgeMs <= msIn30Days) { wonLast30DaysCount++; wonLast30DaysValue += opp.valueGbp; }
+                if (closedAgeMs <= msIn6Months) { wonLast6MonthsCount++; wonLast6MonthsValue += opp.valueGbp; }
+                if (closedAgeMs <= msIn12Months) { wonLast12MonthsCount++; wonLast12MonthsValue += opp.valueGbp; }
             }
 
             if (opp.status.toLowerCase() === 'lost' && opp.estimatedCloseDate) {
                 const closedAgeMs = today.getTime() - opp.estimatedCloseDate.getTime();
                 if (closedAgeMs <= msIn7Days) { lostLast7DaysCount++; lostLast7DaysValue += opp.valueGbp; }
                 if (closedAgeMs <= msIn30Days) { lostLast30DaysCount++; lostLast30DaysValue += opp.valueGbp; }
+                if (closedAgeMs <= msIn6Months) { lostLast6MonthsCount++; lostLast6MonthsValue += opp.valueGbp; }
+                if (closedAgeMs <= msIn12Months) { lostLast12MonthsCount++; lostLast12MonthsValue += opp.valueGbp; }
             }
         }
 
@@ -147,6 +163,12 @@ export async function POST() {
             createdLast30DaysCount, createdLast30DaysValue,
             wonLast30DaysCount, wonLast30DaysValue,
             lostLast30DaysCount, lostLast30DaysValue,
+            createdLast6MonthsCount, createdLast6MonthsValue,
+            wonLast6MonthsCount, wonLast6MonthsValue,
+            lostLast6MonthsCount, lostLast6MonthsValue,
+            createdLast12MonthsCount, createdLast12MonthsValue,
+            wonLast12MonthsCount, wonLast12MonthsValue,
+            lostLast12MonthsCount, lostLast12MonthsValue,
             byRegionCount, byRegionValue
         };
 

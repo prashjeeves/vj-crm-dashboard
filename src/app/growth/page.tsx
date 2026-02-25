@@ -3,15 +3,34 @@
 import { useDashboard } from "@/components/DashboardProvider";
 import { TopBar } from "@/components/TopBar";
 import { UploadZone } from "@/components/UploadZone";
-import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity, ChevronRight, ChevronDown, ExternalLink } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CalendarDays, History, Activity, ChevronRight, ChevronDown, ExternalLink, Users } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import React, { useState, Fragment } from "react";
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    LabelList
+} from 'recharts';
 
 export default function GrowthMetricsPage() {
     const router = useRouter();
     const { isLoaded, currentSnapshot, previousSnapshot, opportunities } = useDashboard();
     const [expandedYear, setExpandedYear] = useState<number | null>(null);
+    const [expandedAccountYear, setExpandedAccountYear] = useState<number | null>(null);
+    const [chartYear, setChartYear] = useState<number | null>(null);
+
+    // Set a default chart year on first render
+    React.useEffect(() => {
+        if (!chartYear && opportunities && opportunities.length > 0) {
+            setChartYear(new Date().getFullYear());
+        }
+    }, [opportunities, chartYear]);
 
     if (!isLoaded || !currentSnapshot) {
         return (
@@ -83,6 +102,54 @@ export default function GrowthMetricsPage() {
                 cs.lostValue += o.valueGbp;
             }
         }
+    }
+
+    // New Customer Account Synthesis (Proxy = Earliest Opportunity Date per Account)
+    const accountOriginDates = new Map<string, Date>();
+    const accountCountries = new Map<string, string>();
+
+    if (opportunities) {
+        // First pass: Find earliest opportunity date for every account
+        for (const o of opportunities) {
+            if (!o.accountName) continue;
+
+            const existingOrigin = accountOriginDates.get(o.accountName);
+            if (!existingOrigin || o.createdOn < existingOrigin) {
+                accountOriginDates.set(o.accountName, o.createdOn);
+                accountCountries.set(o.accountName, o.country || 'Unknown');
+            }
+        }
+    }
+
+    // New Account Aggregation by Year -> Country
+    const newAccountsByYear = new Map<number, {
+        totalAccounts: number;
+        countries: Map<string, number>;
+    }>();
+
+    for (const [acc, originDate] of Array.from(accountOriginDates.entries())) {
+        const yr = originDate.getFullYear();
+        const country = accountCountries.get(acc) || 'Unknown';
+
+        if (!newAccountsByYear.has(yr)) {
+            newAccountsByYear.set(yr, { totalAccounts: 0, countries: new Map() });
+        }
+
+        const s = newAccountsByYear.get(yr)!;
+        s.totalAccounts++;
+        s.countries.set(country, (s.countries.get(country) || 0) + 1);
+    }
+
+    const sortedAccountYears = Array.from(newAccountsByYear.keys()).sort((a, b) => b - a);
+
+    // Top 5 Countries for the selected Chart Year
+    let topChartCountries: { name: string, accounts: number }[] = [];
+    if (chartYear && newAccountsByYear.has(chartYear)) {
+        const yearData = newAccountsByYear.get(chartYear)!;
+        topChartCountries = Array.from(yearData.countries.entries())
+            .map(([name, accounts]) => ({ name, accounts }))
+            .sort((a, b) => b.accounts - a.accounts)
+            .slice(0, 5);
     }
 
     const sortedYears = Array.from(yearStats.keys()).sort((a, b) => b - a); // descending
@@ -311,6 +378,107 @@ export default function GrowthMetricsPage() {
                     )}
                 </div>
 
+                {/* New Customer Account Creation Section */}
+                {sortedAccountYears.length > 0 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+                        {/* New Accounts Table */}
+                        <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm lg:col-span-2">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center">
+                                <Users className="w-5 h-5 mr-3 text-vjtech-accent" /> New Customer Account Creations
+                            </h3>
+                            <p className="text-sm text-slate-500 mb-6 w-3/4">
+                                Analyzes your entire dataset to find the exact earliest created opportunity date for every unique Account Name. This represents deterministic growth of your explicit customer base.
+                            </p>
+
+                            <div className="overflow-x-auto rounded-xl border border-slate-200">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-[#1E293B] text-slate-300 text-xs font-bold uppercase tracking-wider">
+                                        <tr>
+                                            <th className="py-4 px-4 border-r border-slate-700 w-1/3 whitespace-nowrap">Acquisition Year</th>
+                                            <th className="py-4 px-4 text-center">New Accounts Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedAccountYears.map(yr => {
+                                            const s = newAccountsByYear.get(yr)!;
+                                            const isExpanded = expandedAccountYear === yr;
+                                            const sortedCountries = Array.from(s.countries.entries()).sort((a, b) => b[1] - a[1]);
+
+                                            return (
+                                                <Fragment key={`acc-${yr}`}>
+                                                    <tr
+                                                        className={`border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${isExpanded ? 'bg-indigo-50/30' : ''}`}
+                                                        onClick={() => setExpandedAccountYear(expandedAccountYear === yr ? null : yr)}
+                                                        title={`Click to view country breakdown for ${yr}`}
+                                                    >
+                                                        <td className="py-4 px-4 font-black text-slate-800 border-r border-slate-100 text-base flex items-center group">
+                                                            {isExpanded ? <ChevronDown className="w-4 h-4 mr-2 text-vjtech-accent" /> : <ChevronRight className="w-4 h-4 mr-2 text-slate-400" />}
+                                                            {yr}
+                                                        </td>
+                                                        <td className="py-4 px-4 text-center font-bold text-emerald-600 text-lg">{s.totalAccounts.toLocaleString()}</td>
+                                                    </tr>
+                                                    {isExpanded && sortedCountries.map(([country, count], idx) => {
+                                                        const pShare = s.totalAccounts > 0 ? (count / s.totalAccounts) * 100 : 0;
+                                                        return (
+                                                            <tr key={`acc-${yr}-${country}`} className="bg-slate-50/50 border-b border-slate-100 hover:bg-slate-100/50 transition-colors">
+                                                                <td className="py-2.5 px-4 pl-12 font-semibold text-slate-700 border-r border-slate-100 text-sm flex items-center">
+                                                                    <span className="text-slate-400 font-normal text-xs w-5 inline-block text-right mr-3">{idx + 1}.</span>
+                                                                    {country}
+                                                                </td>
+                                                                <td className="py-2.5 px-4 text-center font-medium text-slate-700 text-sm">
+                                                                    {count.toLocaleString()}
+                                                                    <span className="text-[10px] text-slate-400 ml-2 font-bold" title="% of Year's Total Created Accounts">({pShare.toFixed(1)}%)</span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </Fragment>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Top Growth Countries Bar Chart */}
+                        <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm lg:col-span-1 flex flex-col">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-md font-bold text-slate-800">Top Growth Countries</h3>
+                                <select
+                                    value={chartYear || ''}
+                                    onChange={(e) => setChartYear(parseInt(e.target.value))}
+                                    className="text-xs bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-slate-600 font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-vjtech-accent"
+                                >
+                                    {sortedAccountYears.map(yr => (
+                                        <option key={yr} value={yr}>{yr}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex-1 w-full min-h-[300px]">
+                                {topChartCountries.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={topChartCountries} layout="vertical" margin={{ left: 10, right: 30, top: 10, bottom: 10 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
+                                            <XAxis type="number" stroke="#94A3B8" fontSize={12} allowDecimals={false} />
+                                            <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={80} />
+                                            <Tooltip
+                                                cursor={{ fill: '#F1F5F9' }}
+                                                formatter={(val: number) => [`${val} Accounts`, "New Acquired"]}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                            />
+                                            <Bar dataKey="accounts" fill="#10B981" radius={[0, 4, 4, 0]} barSize={24}>
+                                                <LabelList dataKey="accounts" position="right" fill="#64748B" fontSize={11} fontWeight="bold" />
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-sm text-slate-400 italic">No data available for this year.</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
