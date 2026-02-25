@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { isLoaded, opportunities, filters, currentSnapshot, previousSnapshot, report } = useDashboard();
   const [geoView, setGeoView] = useState<'region' | 'country'>('region');
+  const [velocityWindow, setVelocityWindow] = useState<'7d' | '30d' | '6m' | '12m'>('7d');
 
   if (!isLoaded) {
     return (
@@ -80,6 +81,18 @@ export default function DashboardPage() {
     labelStr: `${c.count} Deals (${metrics.weightedPipelineValue > 0 ? ((c.value / metrics.weightedPipelineValue) * 100).toFixed(1) : 0}%)`
   }));
   const activeGeoData = geoView === 'region' ? regionData : countryData;
+
+  // Velocity Metrics Calculations
+  const vMetrics = {
+    '7d': { genCount: currentSnapshot?.createdLast7DaysCount || 0, genVal: currentSnapshot?.createdLast7DaysValue || 0, wonCount: currentSnapshot?.wonLast7DaysCount || 0, wonVal: currentSnapshot?.wonLast7DaysValue || 0, lostCount: currentSnapshot?.lostLast7DaysCount || 0, lostVal: currentSnapshot?.lostLast7DaysValue || 0, label: 'Last 7 Days' },
+    '30d': { genCount: currentSnapshot?.createdLast30DaysCount || 0, genVal: currentSnapshot?.createdLast30DaysValue || 0, wonCount: currentSnapshot?.wonLast30DaysCount || 0, wonVal: currentSnapshot?.wonLast30DaysValue || 0, lostCount: currentSnapshot?.lostLast30DaysCount || 0, lostVal: currentSnapshot?.lostLast30DaysValue || 0, label: 'Last 30 Days' },
+    '6m': { genCount: currentSnapshot?.createdLast6MonthsCount || 0, genVal: currentSnapshot?.createdLast6MonthsValue || 0, wonCount: currentSnapshot?.wonLast6MonthsCount || 0, wonVal: currentSnapshot?.wonLast6MonthsValue || 0, lostCount: currentSnapshot?.lostLast6MonthsCount || 0, lostVal: currentSnapshot?.lostLast6MonthsValue || 0, label: 'Last 6 Months' },
+    '12m': { genCount: currentSnapshot?.createdLast12MonthsCount || 0, genVal: currentSnapshot?.createdLast12MonthsValue || 0, wonCount: currentSnapshot?.wonLast12MonthsCount || 0, wonVal: currentSnapshot?.wonLast12MonthsValue || 0, lostCount: currentSnapshot?.lostLast12MonthsCount || 0, lostVal: currentSnapshot?.lostLast12MonthsValue || 0, label: 'Last 12 Months' }
+  }[velocityWindow];
+
+  const totalClosedVal = vMetrics.wonVal + vMetrics.lostVal;
+  const netGrowthVal = vMetrics.genVal - totalClosedVal;
+  const replacementRatio = totalClosedVal > 0 ? (vMetrics.genVal / totalClosedVal) * 100 : 0;
 
   return (
     <div className="flex-1 flex flex-col bg-[#F8FAFC] min-h-screen">
@@ -136,7 +149,7 @@ export default function DashboardPage() {
             <div className="w-full flex-1 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: '350px' }}>
               <div style={{ height: geoView === 'country' ? `${Math.max(300, activeGeoData.length * 40)}px` : '300px', minHeight: '300px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={activeGeoData} layout="vertical" margin={{ left: 40, right: 140 }}>
+                  <BarChart data={activeGeoData} layout="vertical" margin={{ left: 40, right: 200 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
                     <XAxis type="number" tickFormatter={(val) => `£${(val / 1000000).toFixed(1)}M`} stroke="#94A3B8" fontSize={12} />
                     <YAxis type="category" dataKey="name" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} width={120} />
@@ -209,24 +222,52 @@ export default function DashboardPage() {
         {/* Bottom Row - Data Quality & Top Countries */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm flex flex-col">
-            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-vjtech-accent" /> Pipeline Velocity
-            </h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2 text-vjtech-accent" /> Pipeline Velocity
+              </h3>
+              <select
+                value={velocityWindow}
+                onChange={(e) => setVelocityWindow(e.target.value as any)}
+                className="text-xs bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2 text-slate-600 font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-vjtech-accent"
+              >
+                <option value="7d">7 Days</option>
+                <option value="30d">30 Days</option>
+                <option value="6m">6 Months</option>
+                <option value="12m">12 Months</option>
+              </select>
+            </div>
 
             <div className="space-y-6 flex-1">
               <div>
-                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Generated Last 7 Days</p>
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Generated Pipeline</p>
                 <div className="flex justify-between items-end mb-2">
-                  <span className="text-slate-500">{currentSnapshot?.createdLast7DaysCount || 0} Deals</span>
-                  <span className="text-xl font-bold text-slate-900 text-emerald-600">{formatCurrency(currentSnapshot?.createdLast7DaysValue || 0)}</span>
+                  <span className="text-slate-500 font-semibold text-sm">{vMetrics.genCount} Deals</span>
+                  <span className="text-xl font-bold text-slate-900 text-emerald-600">{formatCurrency(vMetrics.genVal)}</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Generated Last 30 Days</p>
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Closed Pipeline <span className="text-[10px] text-slate-400 normal-case">(Won + Lost)</span></p>
                 <div className="flex justify-between items-end mb-2">
-                  <span className="text-slate-500">{currentSnapshot?.createdLast30DaysCount || 0} Deals</span>
-                  <span className="text-xl font-bold text-slate-900 text-emerald-600">{formatCurrency(currentSnapshot?.createdLast30DaysValue || 0)}</span>
+                  <span className="text-slate-500 font-semibold text-sm">{vMetrics.wonCount + vMetrics.lostCount} Deals</span>
+                  <span className="text-xl font-bold text-slate-900 text-rose-600">{formatCurrency(totalClosedVal)}</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100">
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Growth vs Replenishment</p>
+                <div className="flex justify-between items-end mb-2.5">
+                  <span className="text-xs text-slate-500 font-medium tracking-wide">Net Pipeline Added</span>
+                  <span className={`text-md font-bold ${netGrowthVal >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {netGrowthVal > 0 ? '+' : ''}{formatCurrency(netGrowthVal)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-xs text-slate-500 font-medium tracking-wide">Replacement Ratio</span>
+                  <span className={`text-sm font-bold bg-slate-50 px-2 py-0.5 rounded border ${replacementRatio >= 100 ? 'text-emerald-600 border-emerald-100' : 'text-rose-600 border-rose-100'}`} title="(Generated / Closed) * 100">
+                    {replacementRatio.toFixed(0)}%
+                  </span>
                 </div>
               </div>
 

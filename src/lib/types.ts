@@ -95,6 +95,18 @@ export interface SnapshotConfig {
     wonLast30DaysValue: number;
     lostLast30DaysCount: number;
     lostLast30DaysValue: number;
+    createdLast6MonthsCount: number;
+    createdLast6MonthsValue: number;
+    wonLast6MonthsCount: number;
+    wonLast6MonthsValue: number;
+    lostLast6MonthsCount: number;
+    lostLast6MonthsValue: number;
+    createdLast12MonthsCount: number;
+    createdLast12MonthsValue: number;
+    wonLast12MonthsCount: number;
+    wonLast12MonthsValue: number;
+    lostLast12MonthsCount: number;
+    lostLast12MonthsValue: number;
     byRegionCount: Record<string, number>;
     byRegionValue: Record<string, number>;
 }

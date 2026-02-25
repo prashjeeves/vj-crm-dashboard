@@ -282,13 +282,17 @@ export default function GrowthMetricsPage() {
                                                     </tr>
                                                     {isExpanded && sortedCountries.map(([country, stats], idx) => {
                                                         const cWinRatio = stats.wonCount + stats.lostCount > 0 ? (stats.wonCount / (stats.wonCount + stats.lostCount)) * 100 : 0;
+                                                        const cSharePct = s.createdCount > 0 ? (stats.createdCount / s.createdCount) * 100 : 0;
                                                         return (
                                                             <tr key={`${yr}-${country}`} className="bg-slate-50/50 border-b border-slate-100 hover:bg-slate-100/50 transition-colors">
                                                                 <td className="py-2.5 px-4 pl-12 font-semibold text-slate-700 border-r border-slate-100 text-sm flex items-center">
                                                                     <span className="text-slate-400 font-normal text-xs w-5 inline-block text-right mr-3">{idx + 1}.</span>
                                                                     {country}
                                                                 </td>
-                                                                <td className="py-2.5 px-4 text-center font-medium text-slate-500 text-sm">{stats.createdCount.toLocaleString()}</td>
+                                                                <td className="py-2.5 px-4 text-center font-medium text-slate-500 text-sm">
+                                                                    {stats.createdCount.toLocaleString()}
+                                                                    <span className="text-[10px] text-slate-400 ml-1.5 font-bold" title="% of Year's Total Created Volume">({cSharePct.toFixed(1)}%)</span>
+                                                                </td>
                                                                 <td className="py-2.5 px-4 text-center font-semibold text-emerald-600/80 text-sm">{stats.wonCount.toLocaleString()}</td>
                                                                 <td className="py-2.5 px-4 text-center font-semibold text-rose-600/80 text-sm">{stats.lostCount.toLocaleString()}</td>
                                                                 <td className="py-2.5 px-4 text-center font-bold text-vjtech-accent/80 bg-vjtech-accent/5 text-sm">{cWinRatio.toFixed(1)}%</td>
