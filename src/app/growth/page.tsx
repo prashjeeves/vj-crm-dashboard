@@ -104,18 +104,23 @@ export default function GrowthMetricsPage() {
         }
     }
 
-    // New Customer Account Synthesis (Proxy = Earliest Opportunity Date per Account)
+    // New Customer Account Synthesis
+    // Priority: Explicit Customer 'Created On' (excluding migration mass import) -> Earliest Opportunity Date
     const accountOriginDates = new Map<string, Date>();
     const accountCountries = new Map<string, string>();
 
     if (opportunities) {
-        // First pass: Find earliest opportunity date for every account
+        // First pass: Find earliest known date for every account
         for (const o of opportunities) {
             if (!o.accountName) continue;
 
             const existingOrigin = accountOriginDates.get(o.accountName);
-            if (!existingOrigin || o.createdOn < existingOrigin) {
-                accountOriginDates.set(o.accountName, o.createdOn);
+
+            const oppCreatedDate = new Date(o.createdOn);
+            const effectiveCreatedDate = o.customerCreatedDate ? new Date(o.customerCreatedDate) : oppCreatedDate;
+
+            if (!existingOrigin || effectiveCreatedDate < existingOrigin) {
+                accountOriginDates.set(o.accountName, effectiveCreatedDate);
                 accountCountries.set(o.accountName, o.country || 'Unknown');
             }
         }

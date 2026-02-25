@@ -25,6 +25,7 @@ export interface RawCustomer {
     "Sales Region"?: string;
     "Country"?: string;
     "City"?: string;
+    "Created On"?: string | number;
 }
 
 export type AgeBand = '0-30' | '31-60' | '61-90' | '91-180' | '181-270' | '271-365' | '365+';
@@ -60,6 +61,7 @@ export interface ParsedOpportunity {
     customerClass: string | null;
     salesRegion: string | null;
     customerCity: string | null;
+    customerCreatedDate: string | null;
 
     // Diagnostics
     hasInvalidStageProb: boolean;

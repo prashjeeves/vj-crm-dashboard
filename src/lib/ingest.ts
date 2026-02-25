@@ -111,6 +111,7 @@ export function processPipelineData(
         let customerClass = null;
         let salesRegion = null;
         let customerCity = null;
+        let customerCreatedDate: string | null = null;
 
         if (customerMatch) {
             matchedCustomer = true;
@@ -118,6 +119,24 @@ export function processPipelineData(
             salesRegion = customerMatch["Sales Region"] || null;
             customerCity = customerMatch["City"] || null;
             matchCount++;
+
+            const rawCustCD = customerMatch["Created On"];
+            if (rawCustCD) {
+                let parsedDate = null;
+                if (typeof rawCustCD === 'object' && Object.prototype.toString.call(rawCustCD) === '[object Date]') {
+                    parsedDate = (rawCustCD as unknown as Date).toISOString().split('T')[0];
+                } else if (typeof rawCustCD === 'string') {
+                    parsedDate = rawCustCD.split(' ')[0];
+                } else if (typeof rawCustCD === 'number') {
+                    const asDate = parseExcelDate(rawCustCD);
+                    if (asDate) parsedDate = asDate.toISOString().split('T')[0];
+                }
+
+                // Exclude the mass migration date: 2023-08-24
+                if (parsedDate && parsedDate !== '2023-08-24') {
+                    customerCreatedDate = parsedDate;
+                }
+            }
         } else {
             if (!report.unmatchedAccounts.includes(accountName)) {
                 report.unmatchedAccounts.push(accountName);
@@ -167,6 +186,7 @@ export function processPipelineData(
             customerClass,
             salesRegion,
             customerCity,
+            customerCreatedDate,
 
             hasInvalidStageProb: !!hasInvalidStageProb,
             hasInvalidUserProb: !!hasInvalidUserProb,
